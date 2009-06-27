@@ -18,6 +18,7 @@ library
     src
 
   exposed-modules:
+    Language.Dot.Parser
     Language.Dot.Syntax
 
   build-depends:
