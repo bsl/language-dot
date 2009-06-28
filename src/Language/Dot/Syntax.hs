@@ -34,7 +34,7 @@ data Id = Id String
 
 data Statement
     = NodeStatement       NodeId [Attribute]
-    | EdgeStatement       Entity Entity [Attribute]
+    | EdgeStatement       [Entity] [Attribute]
     | AttributeStatement  AttributeStatementType [Attribute]
     | AssignmentStatement Id Id
     | SubgraphStatement   Subgraph
@@ -65,7 +65,7 @@ data Compass
   deriving Show
 
 data Subgraph
-    = Subgraph    (Maybe Id) [Statement]
+    = NewSubgraph (Maybe Id) [Statement]
     | SubgraphRef Id
   deriving Show
 
