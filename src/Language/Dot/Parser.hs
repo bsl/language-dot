@@ -1,11 +1,15 @@
 module Language.Dot.Parser
+{-
   (
-    parseDotContents
+    parseDotData
+  , parseDotFile
   )
+-}
   where
 
 import Control.Applicative ((<$>), (<$), (<*>), (<*), (*>))
 import Data.Char           (toLower)
+import System.IO           (readFile)
 
 import Text.Parsec
 import Text.Parsec.String
@@ -17,11 +21,15 @@ import Language.Dot.Syntax
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseDotContents :: String -> Either ParseError Graph
-parseDotContents = parse' parseDot . preprocess
+parseDotData :: String -> Either ParseError Graph
+parseDotData =
+    parse parseDot "data" . preprocess
 
-parse' :: Parser a -> String -> Either ParseError a
-parse' p = parse p "DOT"
+parseDotFile :: FilePath -> IO (Either ParseError Graph)
+parseDotFile fp =
+    fmap (parse parseDot fp . preprocess) (readFile fp)
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 preprocess :: String -> String
 preprocess =
@@ -42,7 +50,7 @@ parseGraph =
           parseGraphStrictness
       <*> parseGraphDirectedness
       <*> optionMaybe parseId
-      <*> parseGraphStatementList
+      <*> parseStatementList
 
 parseGraphStrictness :: Parser GraphStrictness
 parseGraphStrictness =
@@ -56,18 +64,18 @@ parseGraphDirectedness =
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseGraphStatementList :: Parser [Statement]
-parseGraphStatementList =
-    "statement list" <??> braces' (many parseGraphStatement)
+parseStatementList :: Parser [Statement]
+parseStatementList =
+    "statement list" <??> braces' (many parseStatement)
 
-parseGraphStatement :: Parser Statement
-parseGraphStatement =
+parseStatement :: Parser Statement
+parseStatement =
     "statement" <??>
-    (   try parseNodeStatement
-    <|> try parseEdgeStatement
+    (   try parseEdgeStatement
     <|> try parseAttributeStatement
     <|> try parseAssignmentStatement
     <|> try parseSubgraphStatement
+    <|> try parseNodeStatement
     ) <* optional semi'
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -109,25 +117,25 @@ parseSubgraphStatement =
 
 parseSubgraph :: Parser Subgraph
 parseSubgraph =
-    "subgraph" <??> reserved' "subgraph" *> (try parseNewSubgraph <|> try parseSubgraphRef)
+    "subgraph" <??> try parseNewSubgraph <|> parseSubgraphRef
 
 parseNewSubgraph :: Parser Subgraph
 parseNewSubgraph =
-    NewSubgraph <$> "new subgraph" <??> optionMaybe parseId <*> parseGraphStatementList
+    NewSubgraph <$> "new subgraph" <??> (optional (reserved' "subgraph") *> optionMaybe parseId) <*> parseStatementList
 
 parseSubgraphRef :: Parser Subgraph
 parseSubgraphRef =
-    SubgraphRef <$> "subgraph ref" <??> parseId
+    SubgraphRef <$> "subgraph ref" <??> (reserved' "subgraph" *> parseId)
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseEntityList :: Parser [Entity]
 parseEntityList =
-    "entity list" <??> sepBy parseEntity parseEdgeOp
+    (:) <$> "entity list" <??> parseEntity <*> many1 (parseEdgeOp *> parseEntity)
 
 parseEntity :: Parser Entity
 parseEntity =
-    "entity" <??> try parseENodeId <|> parseESubgraph
+    "entity" <??> try parseENodeId <|> try parseESubgraph
 
 parseENodeId :: Parser Entity
 parseENodeId =
@@ -184,7 +192,7 @@ parseCompass =
 
 parseAttributeList :: Parser [Attribute]
 parseAttributeList =
-    "attribute list" <??> brackets' (many parseAttribute)
+    "attribute list" <??> brackets' (many parseAttribute) <|> return []
 
 parseAttribute :: Parser Attribute
 parseAttribute =
@@ -200,7 +208,7 @@ parseId =
     (   identifier'
     <|> stringLiteral'
     <|> try (fmap show float')
-    <|> fmap show decimal'
+    <|>      fmap show decimal'
     )
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
