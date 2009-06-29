@@ -1,8 +1,6 @@
 module Language.Dot
   (
-    parseDotData
-  , parseDotFile
-  , module Language.Dot.Parser
+    module Language.Dot.Parser
   , module Language.Dot.Syntax
   )
   where
