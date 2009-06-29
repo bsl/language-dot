@@ -29,7 +29,11 @@ data GraphDirectedness
     | Directed
   deriving Show
 
-data Id = Id String
+data Id
+    = NameId    String
+    | StringId  String
+    | IntegerId Integer
+    | FloatId   Float
   deriving Show
 
 data Statement

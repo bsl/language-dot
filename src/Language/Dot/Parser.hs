@@ -1,14 +1,19 @@
+{-# LANGUAGE CPP #-}
+
 module Language.Dot.Parser
-{-
   (
     parseDotData
   , parseDotFile
+#ifdef TEST
+#endif
   )
--}
   where
 
 import Control.Applicative ((<$>), (<$), (<*>), (<*), (*>))
-import Data.Char           (toLower)
+import Data.Char           (digitToInt, toLower)
+import Data.List           (foldl')
+import Data.Maybe          (fromMaybe)
+import Numeric             (readFloat)
 import System.IO           (readFile)
 
 import Text.Parsec
@@ -36,7 +41,7 @@ preprocess =
     unlines . map commentPoundLines . lines
   where
     commentPoundLines []         = []
-    commentPoundLines line@(c:_) = if c == '#' then '/':'/':line else line
+    commentPoundLines line@(c:_) = if c == '#' then "// " ++ line else line
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -147,7 +152,7 @@ parseESubgraph =
 
 parseEdgeOp :: Parser ()
 parseEdgeOp =
-    "edge operator" <??> try (reservedOp' "--") <|> reservedOp' "->"
+    "edge operator" <??> try (reservedOp' "--") <|> try (reservedOp' "->")
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -199,17 +204,65 @@ parseAttribute =
     "attribute" <??> do
     id0 <- parseId
     id1 <- optionMaybe (reservedOp' "=" >> parseId)
-    optional comma'
+    try (optional comma')
     return $ maybe (AttributeSetTrue id0) (AttributeSetValue id0) id1
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseId :: Parser Id
 parseId =
-    Id <$> "id" <??>
-    (   identifier'
-    <|> stringLiteral'
-    <|> try (fmap show float')
-    <|>      fmap show decimal'
+    "id" <??>
+    (   try parseNameId
+    <|> try parseStringId
+    <|> try parseFloatId
+    <|> try parseIntegerId
     )
+
+parseNameId :: Parser Id
+parseNameId =
+    NameId <$> "name" <??> identifier'
+
+parseStringId :: Parser Id
+parseStringId =
+    StringId <$> "string literal" <??> stringLiteral'
+
+parseIntegerId :: Parser Id
+parseIntegerId =
+    IntegerId <$> "integer" <??> integer'
+
+parseFloatId :: Parser Id
+parseFloatId =
+    lexeme' $
+    "float" <??> do
+    s <- parseSign
+    l <- fmap (fromMaybe 0) (optionMaybe parseNatural)
+    char '.'
+    r <- parseNatural
+    let f = show l ++ "." ++ show r
+    maybe err return (make s f)
+  where
+    make s f =
+        case readFloat f of
+          [(v,"")] -> (Just . FloatId . s) v
+          _        -> Nothing
+    err = parserFail "invalid float value"
+
+parseSign :: (Num a) => Parser (a -> a)
+parseSign =
+    "sign" <??>
+        (char '-' >> return negate)
+    <|> (char '+' >> return id)
+    <|> return id
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+parseNatural :: Parser Integer
+parseNatural =
+    "natural" <??>
+        (char '0' >> return 0)
+    <|> (convert <$> many1 digit)
+  where
+    convert = foldl' (\acc d -> 10 * acc + toInteger (digitToInt d)) 0
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -217,9 +270,9 @@ braces'        :: Parser a -> Parser a
 brackets'      :: Parser a -> Parser a
 colon'         :: Parser String
 comma'         :: Parser String
-decimal'       :: Parser Integer
-float'         :: Parser Double
 identifier'    :: Parser String
+integer'       :: Parser Integer
+lexeme'        :: Parser a -> Parser a
 reserved'      :: String -> Parser ()
 reservedOp'    :: String -> Parser ()
 semi'          :: Parser String
@@ -230,9 +283,9 @@ braces'        = braces        lexer
 brackets'      = brackets      lexer
 colon'         = colon         lexer
 comma'         = comma         lexer
-decimal'       = decimal       lexer
-float'         = float         lexer
 identifier'    = identifier    lexer
+integer'       = integer       lexer
+lexeme'        = lexeme        lexer
 reserved'      = reserved      lexer
 reservedOp'    = reservedOp    lexer
 semi'          = semi          lexer
@@ -247,10 +300,12 @@ lexer =
       { commentStart    = "/*"
       , commentEnd      = "*/"
       , commentLine     = "//"
+      , nestedComments  = True
       , identStart      = letter   <|> char '_'
       , identLetter     = alphaNum <|> char '_'
-      , nestedComments  = True
-      , reservedOpNames = ["->", "--", "=", "+"]
+      , opStart         = oneOf "-="
+      , opLetter        = oneOf ">-"
+      , reservedOpNames = ["->", "--", "="]
       , reservedNames   = ["digraph", "edge", "graph", "node", "strict", "subgraph"]
       , caseSensitive   = False
       }
