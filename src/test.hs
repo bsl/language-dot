@@ -3,6 +3,7 @@ module Main where
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 import Control.Monad (unless)
+import Data.Char     (toLower, toUpper)
 
 import Text.Parsec
 import Text.Parsec.String
@@ -13,8 +14,48 @@ import Language.Dot.Syntax
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 main :: IO ()
-main =
-    testParser "parseId" parseId parseIdTests
+main = do
+    testParser "parsePort"      parsePort      parsePortTests
+    testParser "parseCompass"   parseCompass   parseCompassTests
+    testParser "parseAttribute" parseAttribute parseAttributeTests
+    testParser "parseId"        parseId        parseIdTests
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+parsePortTests :: [(String, Port)]
+parsePortTests =
+    [ ( ":\"x\""          , PortI (StringId  "x"       ) Nothing          )
+    , ( ":\"\\t\\\"\":nw" , PortI (StringId  "\t\""    ) (Just CompassNW) )
+    , ( ":-.0004"         , PortI (FloatId   (-0.0004) ) Nothing          )
+    , ( ":-1.23:sE"       , PortI (FloatId   (-1.23)   ) (Just CompassSE) )
+    , ( ":123"            , PortI (IntegerId 123       ) Nothing          )
+    , ( ":123:NE"         , PortI (IntegerId 123       ) (Just CompassNE) )
+    , ( ":__2xYz"         , PortI (NameId    "__2xYz"  ) Nothing          )
+    , ( ":__2xYz:S"       , PortI (NameId    "__2xYz"  ) (Just CompassS)  )
+    , ( ":n"              , PortC CompassN  )
+    , ( ":SE"             , PortC CompassSE )
+    ]
+
+parseCompassTests :: [(String, Compass)]
+parseCompassTests =
+    concat
+      [ [ (t, CompassN)  | t <- allCaps "n"  ]
+      , [ (t, CompassE)  | t <- allCaps "e"  ]
+      , [ (t, CompassS)  | t <- allCaps "s"  ]
+      , [ (t, CompassW)  | t <- allCaps "w"  ]
+      , [ (t, CompassNE) | t <- allCaps "ne" ]
+      , [ (t, CompassNW) | t <- allCaps "nw" ]
+      , [ (t, CompassSE) | t <- allCaps "se" ]
+      , [ (t, CompassSW) | t <- allCaps "sw" ]
+      ]
+
+parseAttributeTests :: [(String, Attribute)]
+parseAttributeTests =
+    [ ( "a"                      , AttributeSetTrue  (NameId "a")                            )
+    , ( "a=b"                    , AttributeSetValue (NameId "a")        (NameId "b")        )
+    , ( "-.003\t=\r\n  _xYz123_" , AttributeSetValue (FloatId (-0.003))  (NameId "_xYz123_") )
+    , ( "\"\\t\\t\\t\"  =-123"   , AttributeSetValue (StringId "\t\t\t") (IntegerId (-123))  )
+    ]
 
 parseIdTests :: [(String, Id)]
 parseIdTests =
@@ -73,3 +114,11 @@ makeFailureMessage' name i o v =
 
 parse' :: Parser a -> String -> Either ParseError a
 parse' p = parse p ""
+
+allCaps :: String -> [String]
+allCaps []     = [[]]
+allCaps (c:cs) =
+    concatMap (\t -> [cl:t, cu:t]) (allCaps cs)
+  where
+    cl = toLower c
+    cu = toUpper c

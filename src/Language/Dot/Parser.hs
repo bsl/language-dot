@@ -6,6 +6,9 @@ module Language.Dot.Parser
   , parseDotFile
 
 #ifdef TEST
+  , parsePort
+  , parseCompass
+  , parseAttribute
   , parseId
 #endif
   )
@@ -83,7 +86,7 @@ parseStatement =
     <|> try parseAttributeStatement
     <|> try parseAssignmentStatement
     <|> try parseSubgraphStatement
-    <|> try parseNodeStatement
+    <|>     parseNodeStatement
     )
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -143,7 +146,7 @@ parseEntityList =
 
 parseEntity :: Parser Entity
 parseEntity =
-    "entity" <??> try parseENodeId <|> try parseESubgraph
+    "entity" <??> try parseENodeId <|> parseESubgraph
 
 parseENodeId :: Parser Entity
 parseENodeId =
@@ -192,6 +195,8 @@ parseCompass =
           , ("ne", CompassNE), ("nw", CompassNW), ("se", CompassSE), ("sw", CompassSW)
           ]
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
 parseAttributeList :: Parser [Attribute]
 parseAttributeList =
     "attribute list" <??> brackets' (parseAttribute `sepBy` optional comma') <|> return []
@@ -211,7 +216,7 @@ parseId =
     (   try parseNameId
     <|> try parseStringId
     <|> try parseFloatId
-    <|> try parseIntegerId
+    <|>     parseIntegerId
     )
 
 parseNameId :: Parser Id
@@ -226,6 +231,8 @@ parseIntegerId :: Parser Id
 parseIntegerId =
     IntegerId <$> "integer" <??> integer'
 
+-- | DOT allows floating point numbers having no whole part like @.123@, but
+--   Parsec 'float' does not accept them.
 parseFloatId :: Parser Id
 parseFloatId =
     lexeme' $
@@ -249,7 +256,7 @@ parseSign =
     <|> (char '+' >> return id)
     <|> return id
 
--- | Non-lexeme version for parsing the natural part of a float.
+-- | Non-'lexeme' variant of 'natural' for parsing the natural part of a float.
 parseNatural :: Parser Integer
 parseNatural =
     "natural" <??>
@@ -298,7 +305,7 @@ lexer =
       , identStart      = letter   <|> char '_'
       , identLetter     = alphaNum <|> char '_'
       , opStart         = oneOf "-="
-      , opLetter        = oneOf ">-"
+      , opLetter        = oneOf ""
       , reservedOpNames = ["->", "--", "="]
       , reservedNames   = ["digraph", "edge", "graph", "node", "strict", "subgraph"]
       , caseSensitive   = False
@@ -306,6 +313,7 @@ lexer =
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+-- | Like '<?>', but used /before/ parser code.
 (<??>) :: Monad m => String -> ParsecT s u m a -> ParsecT s u m a
 (<??>) = flip (<?>)
 
