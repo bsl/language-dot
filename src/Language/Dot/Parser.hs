@@ -4,12 +4,14 @@ module Language.Dot.Parser
   (
     parseDotData
   , parseDotFile
+
 #ifdef TEST
+  , parseId
 #endif
   )
   where
 
-import Control.Applicative ((<$>), (<$), (<*>), (<*), (*>))
+import Control.Applicative ((<$>), (<$), (<*>), (*>))
 import Data.Char           (digitToInt, toLower)
 import Data.List           (foldl')
 import Data.Maybe          (fromMaybe)
@@ -17,10 +19,10 @@ import Numeric             (readFloat)
 import System.IO           (readFile)
 
 import Text.Parsec
-import Text.Parsec.String
-import Text.Parsec.Language (emptyDef)
-import Text.Parsec.Token
 import Text.Parsec.Combinator
+import Text.Parsec.Language
+import Text.Parsec.String
+import Text.Parsec.Token
 
 import Language.Dot.Syntax
 
@@ -46,23 +48,24 @@ preprocess =
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseDot :: Parser Graph
-parseDot = whiteSpace' >> parseGraph
+parseDot =
+    whiteSpace' >> parseGraph
 
 parseGraph :: Parser Graph
 parseGraph =
     Graph <$>
       "graph" <??>
-          parseGraphStrictness
-      <*> parseGraphDirectedness
+          parseStrictness
+      <*> parseDirectedness
       <*> optionMaybe parseId
       <*> parseStatementList
 
-parseGraphStrictness :: Parser GraphStrictness
-parseGraphStrictness =
+parseStrictness :: Parser GraphStrictness
+parseStrictness =
     "graph strictness" <??> (Strict <$ reserved' "strict") <|> return NotStrict
 
-parseGraphDirectedness :: Parser GraphDirectedness
-parseGraphDirectedness =
+parseDirectedness :: Parser GraphDirectedness
+parseDirectedness =
     "graph directedness" <??>
         (reserved' "graph"   >> return Undirected)
     <|> (reserved' "digraph" >> return Directed)
@@ -71,7 +74,7 @@ parseGraphDirectedness =
 
 parseStatementList :: Parser [Statement]
 parseStatementList =
-    "statement list" <??> braces' (many parseStatement)
+    "statement list" <??> braces' (parseStatement `endBy` optional semi')
 
 parseStatement :: Parser Statement
 parseStatement =
@@ -81,7 +84,7 @@ parseStatement =
     <|> try parseAssignmentStatement
     <|> try parseSubgraphStatement
     <|> try parseNodeStatement
-    ) <* optional semi'
+    )
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -152,7 +155,7 @@ parseESubgraph =
 
 parseEdgeOp :: Parser ()
 parseEdgeOp =
-    "edge operator" <??> try (reservedOp' "--") <|> try (reservedOp' "->")
+    "edge operator" <??> try (reservedOp' "--") <|> reservedOp' "->"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -180,31 +183,24 @@ parseCompass :: Parser Compass
 parseCompass =
     "compass" <??> fmap convert identifier' >>= maybe err return
   where
+    err = parserFail "invalid compass value"
     convert =
         flip lookup table . stringToLower
       where
         table =
-          [ ("n",  CompassN)
-          , ("e",  CompassE)
-          , ("s",  CompassS)
-          , ("w",  CompassW)
-          , ("ne", CompassNE)
-          , ("nw", CompassNW)
-          , ("se", CompassSE)
-          , ("sw", CompassSW)
+          [ ("n",  CompassN),  ("e",  CompassE),  ("s",  CompassS),  ("w",  CompassW)
+          , ("ne", CompassNE), ("nw", CompassNW), ("se", CompassSE), ("sw", CompassSW)
           ]
-    err = parserFail "invalid compass value"
 
 parseAttributeList :: Parser [Attribute]
 parseAttributeList =
-    "attribute list" <??> brackets' (many parseAttribute) <|> return []
+    "attribute list" <??> brackets' (parseAttribute `sepBy` optional comma') <|> return []
 
 parseAttribute :: Parser Attribute
 parseAttribute =
     "attribute" <??> do
     id0 <- parseId
     id1 <- optionMaybe (reservedOp' "=" >> parseId)
-    try (optional comma')
     return $ maybe (AttributeSetTrue id0) (AttributeSetValue id0) id1
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -237,15 +233,14 @@ parseFloatId =
     s <- parseSign
     l <- fmap (fromMaybe 0) (optionMaybe parseNatural)
     char '.'
-    r <- parseNatural
-    let f = show l ++ "." ++ show r
-    maybe err return (make s f)
+    r <- many1 digit
+    maybe err return (make s (show l ++ "." ++ r))
   where
+    err = parserFail "invalid float value"
     make s f =
         case readFloat f of
           [(v,"")] -> (Just . FloatId . s) v
           _        -> Nothing
-    err = parserFail "invalid float value"
 
 parseSign :: (Num a) => Parser (a -> a)
 parseSign =
@@ -254,15 +249,14 @@ parseSign =
     <|> (char '+' >> return id)
     <|> return id
 
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
+-- | Non-lexeme version for parsing the natural part of a float.
 parseNatural :: Parser Integer
 parseNatural =
     "natural" <??>
         (char '0' >> return 0)
     <|> (convert <$> many1 digit)
   where
-    convert = foldl' (\acc d -> 10 * acc + toInteger (digitToInt d)) 0
+    convert = foldl' (\acc d -> 10 * acc + fromIntegral (digitToInt d)) 0
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

@@ -17,24 +17,24 @@ module Language.Dot.Syntax
 
 data Graph
     = Graph GraphStrictness GraphDirectedness (Maybe Id) [Statement]
-  deriving Show
+  deriving (Eq, Show)
 
 data GraphStrictness
     = Strict
     | NotStrict
-  deriving Show
+  deriving (Eq, Show)
 
 data GraphDirectedness
     = Undirected
     | Directed
-  deriving Show
+  deriving (Eq, Show)
 
 data Id
     = NameId    String
     | StringId  String
     | IntegerId Integer
     | FloatId   Float
-  deriving Show
+  deriving (Eq, Show)
 
 data Statement
     = NodeStatement       NodeId [Attribute]
@@ -42,38 +42,38 @@ data Statement
     | AttributeStatement  AttributeStatementType [Attribute]
     | AssignmentStatement Id Id
     | SubgraphStatement   Subgraph
-  deriving Show
+  deriving (Eq, Show)
 
 data AttributeStatementType =
       GraphAttributeStatement
     | NodeAttributeStatement
     | EdgeAttributeStatement
-  deriving Show
+  deriving (Eq, Show)
 
 data Attribute
     = AttributeSetTrue  Id
     | AttributeSetValue Id Id
-  deriving Show
+  deriving (Eq, Show)
 
 data NodeId = NodeId Id (Maybe Port)
-  deriving Show
+  deriving (Eq, Show)
 
 data Port
     = PortI Id (Maybe Compass)
     | PortC Compass
-  deriving Show
+  deriving (Eq, Show)
 
 data Compass
     = CompassN  | CompassE  | CompassS  | CompassW
     | CompassNE | CompassNW | CompassSE | CompassSW
-  deriving Show
+  deriving (Eq, Show)
 
 data Subgraph
     = NewSubgraph (Maybe Id) [Statement]
     | SubgraphRef Id
-  deriving Show
+  deriving (Eq, Show)
 
 data Entity
     = ENodeId   NodeId
     | ESubgraph Subgraph
-  deriving Show
+  deriving (Eq, Show)
