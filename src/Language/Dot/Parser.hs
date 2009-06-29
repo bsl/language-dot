@@ -2,9 +2,7 @@
 
 module Language.Dot.Parser
   (
-    parseDotData
-  , parseDotFile
-
+    parseDot
 #ifdef TEST
   , parsePort
   , parseCompass
@@ -19,7 +17,6 @@ import Data.Char           (digitToInt, toLower)
 import Data.List           (foldl')
 import Data.Maybe          (fromMaybe)
 import Numeric             (readFloat)
-import System.IO           (readFile)
 
 import Text.Parsec
 import Text.Parsec.Combinator
@@ -31,13 +28,9 @@ import Language.Dot.Syntax
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseDotData :: String -> Either ParseError Graph
-parseDotData =
-    parse parseDot "data" . preprocess
-
-parseDotFile :: FilePath -> IO (Either ParseError Graph)
-parseDotFile fp =
-    fmap (parse parseDot fp . preprocess) (readFile fp)
+parseDot :: String -> Either ParseError Graph
+parseDot =
+    parse (whiteSpace' >> parseGraph) "data" . preprocess
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -49,10 +42,6 @@ preprocess =
     commentPoundLines line@(c:_) = if c == '#' then "// " ++ line else line
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-parseDot :: Parser Graph
-parseDot =
-    whiteSpace' >> parseGraph
 
 parseGraph :: Parser Graph
 parseGraph =
