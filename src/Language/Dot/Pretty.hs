@@ -2,6 +2,7 @@ module Language.Dot.Pretty
   (
     prettyPrintDot
   , renderDot
+  , PP(..)
   )
   where
 
