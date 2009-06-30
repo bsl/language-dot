@@ -1,4 +1,4 @@
-module Main where
+module Main (main) where
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -118,7 +118,7 @@ parse' p = parse p ""
 allCaps :: String -> [String]
 allCaps []     = [[]]
 allCaps (c:cs) =
-    concatMap (\t -> [cl:t, cu:t]) (allCaps cs)
+    concatMap (\t -> [l:t, u:t]) (allCaps cs)
   where
-    cl = toLower c
-    cu = toUpper c
+    l = toLower c
+    u = toUpper c
