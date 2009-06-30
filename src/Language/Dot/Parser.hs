@@ -47,20 +47,20 @@ parseGraph :: Parser Graph
 parseGraph =
     Graph <$>
       "graph" <??>
-          parseStrictness
-      <*> parseDirectedness
+          parseGraphStrictness
+      <*> parseGraphDirectedness
       <*> optionMaybe parseId
       <*> parseStatementList
 
-parseStrictness :: Parser GraphStrictness
-parseStrictness =
-    "graph strictness" <??> (Strict <$ reserved' "strict") <|> return NotStrict
+parseGraphStrictness :: Parser GraphStrictness
+parseGraphStrictness =
+    "graph strictness" <??> (StrictGraph <$ reserved' "strict") <|> return UnstrictGraph
 
-parseDirectedness :: Parser GraphDirectedness
-parseDirectedness =
+parseGraphDirectedness :: Parser GraphDirectedness
+parseGraphDirectedness =
     "graph directedness" <??>
-        (reserved' "graph"   >> return Undirected)
-    <|> (reserved' "digraph" >> return Directed)
+        (reserved' "graph"   >> return UndirectedGraph)
+    <|> (reserved' "digraph" >> return DirectedGraph)
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -131,23 +131,27 @@ parseSubgraphRef =
 
 parseEntityList :: Parser [Entity]
 parseEntityList =
-    (:) <$> "entity list" <??> parseEntity <*> many1 (parseEdgeOp *> parseEntity)
+    (:) <$> "entity list" <??> parseEntity True <*> many1 (parseEntity False)
 
-parseEntity :: Parser Entity
-parseEntity =
-    "entity" <??> try parseENodeId <|> parseESubgraph
+parseEntity :: Bool -> Parser Entity
+parseEntity first =
+    "entity" <??> try (parseENodeId first) <|> parseESubgraph first
 
-parseENodeId :: Parser Entity
-parseENodeId =
-    ENodeId <$> "entity node id" <??> parseNodeId
+parseENodeId :: Bool -> Parser Entity
+parseENodeId first =
+    ENodeId <$> "entity node id" <??>
+    (if first then return NoEdge else parseEdgeType) <*> parseNodeId
 
-parseESubgraph :: Parser Entity
-parseESubgraph =
-    ESubgraph <$> "entity subgraph" <??> parseSubgraph
+parseESubgraph :: Bool -> Parser Entity
+parseESubgraph first =
+    ESubgraph <$> "entity subgraph" <??>
+    (if first then return NoEdge else parseEdgeType) <*> parseSubgraph
 
-parseEdgeOp :: Parser ()
-parseEdgeOp =
-    "edge operator" <??> try (reservedOp' "--") <|> reservedOp' "->"
+parseEdgeType :: Parser EdgeType
+parseEdgeType =
+    "edge operator" <??>
+        try (reservedOp' "->" >> return DirectedEdge)
+    <|>     (reservedOp' "--" >> return UndirectedEdge)
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

@@ -1,3 +1,5 @@
+-- | DOT AST. See <http://www.graphviz.org/doc/info/lang.html>.
+
 module Language.Dot.Syntax
   (
     Graph(..)
@@ -12,6 +14,7 @@ module Language.Dot.Syntax
   , Compass(..)
   , Subgraph(..)
   , Entity(..)
+  , EdgeType(..)
   )
   where
 
@@ -20,13 +23,13 @@ data Graph
   deriving (Eq, Show)
 
 data GraphStrictness
-    = Strict
-    | NotStrict
+    = StrictGraph
+    | UnstrictGraph
   deriving (Eq, Show)
 
 data GraphDirectedness
-    = Undirected
-    | Directed
+    = DirectedGraph
+    | UndirectedGraph
   deriving (Eq, Show)
 
 data Id
@@ -44,8 +47,8 @@ data Statement
     | SubgraphStatement   Subgraph
   deriving (Eq, Show)
 
-data AttributeStatementType =
-      GraphAttributeStatement
+data AttributeStatementType
+    = GraphAttributeStatement
     | NodeAttributeStatement
     | EdgeAttributeStatement
   deriving (Eq, Show)
@@ -74,6 +77,12 @@ data Subgraph
   deriving (Eq, Show)
 
 data Entity
-    = ENodeId   NodeId
-    | ESubgraph Subgraph
+    = ENodeId   EdgeType NodeId
+    | ESubgraph EdgeType Subgraph
+  deriving (Eq, Show)
+
+data EdgeType
+    = NoEdge
+    | DirectedEdge
+    | UndirectedEdge
   deriving (Eq, Show)
