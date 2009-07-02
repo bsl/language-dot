@@ -8,12 +8,7 @@ module Language.Dot.Pretty
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-import Text.PrettyPrint (Doc, empty, render)
-import Text.PrettyPrint ((<>), (<+>), ($+$))
-import Text.PrettyPrint (hsep, nest, text, vcat)
-import Text.PrettyPrint (brackets, colon, equals, lbrace, rbrace)
-import Text.PrettyPrint (float, integer)
-import qualified Text.PrettyPrint as TPP
+import Text.PrettyPrint
 
 import Language.Dot.Syntax
 
@@ -35,7 +30,7 @@ instance (PP a) => PP (Maybe a) where
   pp Nothing  = empty
 
 instance PP Graph where
-  pp (Graph s d mi ss) = pp s <+> pp d <+> pp mi <+> lbrace $+$ indent (vcat (map pp ss)) $+$ rbrace
+  pp (Graph s d mi ss) = pp s <+> pp d <+> pp mi <+> lbrace $+$ indent (vcat' ss) $+$ rbrace
 
 instance PP GraphStrictness where
   pp StrictGraph   = text "strict"
@@ -50,11 +45,12 @@ instance PP Id where
   pp (StringId v)  = text (show v)
   pp (IntegerId v) = integer v
   pp (FloatId v)   = float v
+  pp (XmlId v)     = langle <> pp v <> rangle
 
 instance PP Statement where
-  pp (NodeStatement ni as)       = pp ni <+> if not (null as) then brackets (hsep (map pp as)) else empty
-  pp (EdgeStatement es as)       = hsep (map pp es) <+> if not (null as) then brackets (hsep (map pp as)) else empty
-  pp (AttributeStatement t as)   = pp t <+> brackets (hsep (map pp as))
+  pp (NodeStatement ni as)       = pp ni <+> if not (null as) then brackets (hsep' as) else empty
+  pp (EdgeStatement es as)       = hsep' es <+> if not (null as) then brackets (hsep' as) else empty
+  pp (AttributeStatement t as)   = pp t <+> brackets (hsep' as)
   pp (AssignmentStatement i0 i1) = pp i0 <> equals <> pp i1
   pp (SubgraphStatement s)       = pp s
 
@@ -85,7 +81,7 @@ instance PP Compass where
   pp CompassSW = text "sw"
 
 instance PP Subgraph where
-  pp (NewSubgraph mi ss) = text "subgraph" <+> pp mi <+> lbrace $+$ indent (vcat (map pp ss)) $+$ rbrace
+  pp (NewSubgraph mi ss) = text "subgraph" <+> pp mi <+> lbrace $+$ indent (vcat' ss) $+$ rbrace
   pp (SubgraphRef i)     = text "subgraph" <+> pp i
 
 instance PP Entity where
@@ -94,10 +90,44 @@ instance PP Entity where
 
 instance PP EdgeType where
   pp NoEdge         = empty
-  pp DirectedEdge   = text " ->"
-  pp UndirectedEdge = text " --"
+  pp DirectedEdge   = text "->"
+  pp UndirectedEdge = text "--"
+
+instance PP Xml where
+  pp (XmlEmptyTag n as) = langle <> pp n <+> hsep' as <> slash <> rangle
+  pp (XmlTag n as xs)   = langle <> pp n <+> hsep' as <> rangle <> hcat' xs <> langle <> slash <> pp n <> rangle
+  pp (XmlText t)        = text t
+
+instance PP XmlName where
+  pp (XmlName n) = text n
+
+instance PP XmlAttribute where
+  pp (XmlAttribute n v) = pp n <> equals <> pp v
+
+instance PP XmlAttributeValue where
+  pp (XmlAttributeValue v) = doubleQuotes (text v)
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 indent :: Doc -> Doc
 indent = nest 2
+
+hcat' :: (PP a) => [a] -> Doc
+hcat' = hcat . map pp
+
+hsep' :: (PP a) => [a] -> Doc
+hsep' = hsep . map pp
+
+vcat' :: (PP a) => [a] -> Doc
+vcat' = vcat . map pp
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+langle :: Doc
+langle = char '<'
+
+rangle :: Doc
+rangle = char '>'
+
+slash :: Doc
+slash = char '/'

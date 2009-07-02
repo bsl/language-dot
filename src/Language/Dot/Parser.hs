@@ -12,13 +12,17 @@ module Language.Dot.Parser
   )
   where
 
-import Control.Applicative ((<$>), (<$), (<*>), (*>))
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+import Control.Applicative ((<$>), (<*>), (<*), (*>))
+import Control.Monad       (when)
 import Data.Char           (digitToInt, toLower)
 import Data.List           (foldl')
-import Data.Maybe          (fromMaybe)
+import Data.Maybe          (fromJust, fromMaybe, isJust)
 import Numeric             (readFloat)
 
 import Text.Parsec
+import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.Language
 import Text.Parsec.String
@@ -46,138 +50,170 @@ preprocess =
 parseGraph :: Parser Graph
 parseGraph =
     Graph <$>
-      "graph" <??>
-          parseGraphStrictness
-      <*> parseGraphDirectedness
-      <*> optionMaybe parseId
-      <*> parseStatementList
+        parseGraphStrictness
+    <*> parseGraphDirectedness
+    <*> optionMaybe parseId
+    <*> parseStatementList
+    <?> "graph"
 
 parseGraphStrictness :: Parser GraphStrictness
 parseGraphStrictness =
-    "graph strictness" <??> (StrictGraph <$ reserved' "strict") <|> return UnstrictGraph
+    (reserved' "strict" >> return StrictGraph) <|> return UnstrictGraph
+    <?> "graph strictness"
 
 parseGraphDirectedness :: Parser GraphDirectedness
 parseGraphDirectedness =
-    "graph directedness" <??>
         (reserved' "graph"   >> return UndirectedGraph)
     <|> (reserved' "digraph" >> return DirectedGraph)
+    <?> "graph directedness"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseStatementList :: Parser [Statement]
 parseStatementList =
-    "statement list" <??> braces' (parseStatement `endBy` optional semi')
+    braces' (parseStatement `endBy` optional semi')
+    <?> "statement list"
 
 parseStatement :: Parser Statement
 parseStatement =
-    "statement" <??>
-    (   try parseEdgeStatement
+        try parseEdgeStatement
     <|> try parseAttributeStatement
     <|> try parseAssignmentStatement
     <|> try parseSubgraphStatement
     <|>     parseNodeStatement
-    )
+    <?> "statement"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseNodeStatement :: Parser Statement
 parseNodeStatement =
-    NodeStatement <$> "node statement" <??> parseNodeId <*> parseAttributeList
+    NodeStatement <$>
+    parseNodeId <*> parseAttributeList
+    <?> "node statement"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseEdgeStatement :: Parser Statement
 parseEdgeStatement =
-    EdgeStatement <$> "edge statement" <??> parseEntityList <*> parseAttributeList
+    EdgeStatement <$>
+    parseEntityList <*> parseAttributeList
+    <?> "edge statement"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseAttributeStatement :: Parser Statement
 parseAttributeStatement =
-    AttributeStatement <$> "attribute statement" <??> parseAttributeStatementType <*> parseAttributeList
+    AttributeStatement <$>
+    parseAttributeStatementType <*> parseAttributeList
+    <?> "attribute statement"
 
 parseAttributeStatementType :: Parser AttributeStatementType
 parseAttributeStatementType =
-    "attribute statement type" <??>
         (reserved' "graph" >> return GraphAttributeStatement)
     <|> (reserved' "node"  >> return NodeAttributeStatement)
     <|> (reserved' "edge"  >> return EdgeAttributeStatement)
+    <?> "attribute statement type"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseAssignmentStatement :: Parser Statement
 parseAssignmentStatement =
-    AssignmentStatement <$> "assignment statement" <??> parseId <*> (reservedOp' "=" *> parseId)
+    AssignmentStatement <$>
+    parseId <*> (reservedOp' "=" *> parseId)
+    <?> "assignment statement"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseSubgraphStatement :: Parser Statement
 parseSubgraphStatement =
-    SubgraphStatement <$> "subgraph statement" <??> parseSubgraph
+    SubgraphStatement <$>
+    parseSubgraph
+    <?> "subgraph statement"
 
 parseSubgraph :: Parser Subgraph
 parseSubgraph =
-    "subgraph" <??> try parseNewSubgraph <|> parseSubgraphRef
+        try parseNewSubgraph
+    <|>     parseSubgraphRef
+    <?> "subgraph"
 
 parseNewSubgraph :: Parser Subgraph
 parseNewSubgraph =
-    NewSubgraph <$> "new subgraph" <??> (optional (reserved' "subgraph") *> optionMaybe parseId) <*> parseStatementList
+    NewSubgraph <$>
+    (optional (reserved' "subgraph") *> optionMaybe parseId) <*> parseStatementList
+    <?> "new subgraph"
 
 parseSubgraphRef :: Parser Subgraph
 parseSubgraphRef =
-    SubgraphRef <$> "subgraph ref" <??> (reserved' "subgraph" *> parseId)
+    SubgraphRef <$>
+    (reserved' "subgraph" *> parseId)
+    <?> "subgraph ref"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseEntityList :: Parser [Entity]
 parseEntityList =
-    (:) <$> "entity list" <??> parseEntity True <*> many1 (parseEntity False)
+    (:) <$>
+    parseEntity True <*> many1 (parseEntity False)
+    <?> "entity list"
 
 parseEntity :: Bool -> Parser Entity
 parseEntity first =
-    "entity" <??> try (parseENodeId first) <|> parseESubgraph first
+        try (parseENodeId first)
+    <|>     parseESubgraph first
+    <?> "entity"
 
 parseENodeId :: Bool -> Parser Entity
 parseENodeId first =
-    ENodeId <$> "entity node id" <??>
+    ENodeId <$>
     (if first then return NoEdge else parseEdgeType) <*> parseNodeId
+    <?> "entity node id"
 
 parseESubgraph :: Bool -> Parser Entity
 parseESubgraph first =
-    ESubgraph <$> "entity subgraph" <??>
+    ESubgraph <$>
     (if first then return NoEdge else parseEdgeType) <*> parseSubgraph
+    <?> "entity subgraph"
 
 parseEdgeType :: Parser EdgeType
 parseEdgeType =
-    "edge operator" <??>
         try (reservedOp' "->" >> return DirectedEdge)
     <|>     (reservedOp' "--" >> return UndirectedEdge)
+    <?> "edge operator"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseNodeId :: Parser NodeId
 parseNodeId =
-    NodeId <$> "node id" <??> parseId <*> optionMaybe parsePort
+    NodeId <$>
+    parseId <*> optionMaybe parsePort
+    <?> "node id"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parsePort :: Parser Port
 parsePort =
-    "port" <??> try parsePortC <|> parsePortI
+        try parsePortC
+    <|>     parsePortI
+    <?> "port"
 
 parsePortC :: Parser Port
 parsePortC =
-    PortC <$> "port (compass)" <??> (colon' *> parseCompass)
+    PortC <$>
+    (colon' *> parseCompass)
+    <?> "port (compass variant)"
 
 parsePortI :: Parser Port
 parsePortI =
-    PortI <$> "port (id)" <??> (colon' *> parseId) <*> optionMaybe (colon' *> parseCompass)
+    PortI <$>
+    (colon' *> parseId) <*> optionMaybe (colon' *> parseCompass)
+    <?> "port (id variant)"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseCompass :: Parser Compass
 parseCompass =
-    "compass" <??> fmap convert identifier' >>= maybe err return
+    fmap convert identifier' >>= maybe err return
+    <?> "compass"
   where
     err = parserFail "invalid compass value"
     convert =
@@ -192,49 +228,53 @@ parseCompass =
 
 parseAttributeList :: Parser [Attribute]
 parseAttributeList =
-    "attribute list" <??> brackets' (parseAttribute `sepBy` optional comma') <|> return []
+    brackets' (parseAttribute `sepBy` optional comma') <|> return []
+    <?> "attribute list"
 
 parseAttribute :: Parser Attribute
-parseAttribute =
-    "attribute" <??> do
+parseAttribute = do
     id0 <- parseId
     id1 <- optionMaybe (reservedOp' "=" >> parseId)
     return $ maybe (AttributeSetTrue id0) (AttributeSetValue id0) id1
+    <?> "attribute"
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 parseId :: Parser Id
 parseId =
-    "id" <??>
-    (   try parseNameId
+        try parseNameId
     <|> try parseStringId
     <|> try parseFloatId
-    <|>     parseIntegerId
-    )
+    <|> try parseIntegerId
+    <|>     parseXmlId
+    <?> "id"
 
 parseNameId :: Parser Id
 parseNameId =
-    NameId <$> "name" <??> identifier'
+    NameId <$>
+    identifier'
+    <?> "name"
 
 parseStringId :: Parser Id
 parseStringId =
-    StringId <$> "string literal" <??> stringLiteral'
+    StringId <$>
+    stringLiteral'
+    <?> "string literal"
 
-parseIntegerId :: Parser Id
-parseIntegerId =
-    IntegerId <$> "integer" <??> integer'
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 -- | DOT allows floating point numbers having no whole part like @.123@, but
 --   Parsec 'float' does not accept them.
 parseFloatId :: Parser Id
 parseFloatId =
-    lexeme' $
-    "float" <??> do
-    s <- parseSign
-    l <- fmap (fromMaybe 0) (optionMaybe parseNatural)
-    char '.'
-    r <- many1 digit
-    maybe err return (make s (show l ++ "." ++ r))
+    lexeme'
+      ( do s <- parseSign
+           l <- fmap (fromMaybe 0) (optionMaybe parseNatural)
+           char '.'
+           r <- many1 digit
+           maybe err return (make s (show l ++ "." ++ r))
+      )
+    <?> "float"
   where
     err = parserFail "invalid float value"
     make s f =
@@ -244,22 +284,116 @@ parseFloatId =
 
 parseSign :: (Num a) => Parser (a -> a)
 parseSign =
-    "sign" <??>
         (char '-' >> return negate)
     <|> (char '+' >> return id)
     <|> return id
+    <?> "sign"
 
 -- | Non-'lexeme' variant of 'natural' for parsing the natural part of a float.
 parseNatural :: Parser Integer
 parseNatural =
-    "natural" <??>
         (char '0' >> return 0)
     <|> (convert <$> many1 digit)
+    <?> "natural"
   where
     convert = foldl' (\acc d -> 10 * acc + fromIntegral (digitToInt d)) 0
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+parseIntegerId :: Parser Id
+parseIntegerId =
+    IntegerId <$>
+    integer'
+    <?> "integer"
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+parseXmlId :: Parser Id
+parseXmlId =
+    XmlId <$>
+    angles' parseXml
+    <?> "XML id"
+
+parseXml :: Parser Xml
+parseXml =
+        try parseXmlEmptyTag
+    <|> try parseXmlTag
+    <|>     parseXmlText
+    <?> "XML"
+
+parseXmlEmptyTag :: Parser Xml
+parseXmlEmptyTag =
+    XmlEmptyTag <$>
+    (char '<' *> parseXmlName) <*> (parseXmlAttributes <* (char '/' >> char '>'))
+    <?> "XML empty tag"
+
+parseXmlTag :: Parser Xml
+parseXmlTag = do
+    (name, attributes) <- parseXmlTagOpen
+    elements           <- manyTill parseXml (lookAhead (try (parseXmlTagClose (Just name))))
+    parseXmlTagClose (Just name)
+    return $ XmlTag name attributes elements
+    <?> "XML tag"
+
+parseXmlTagOpen :: Parser (XmlName, [XmlAttribute])
+parseXmlTagOpen =
+    (,) <$>
+    (char '<' *> parseXmlName) <*> (parseXmlAttributes <* char '>')
+    <?> "XML opening tag"
+
+parseXmlTagClose :: Maybe XmlName -> Parser ()
+parseXmlTagClose mn0 = do
+    char '<'
+    char '/'
+    n1 <- parseXmlName
+    char '>'
+    when (isJust mn0 && fromJust mn0 /= n1) parserZero
+    <?> "XML closing tag " ++ "(" ++ which ++ ")"
+  where
+    which =
+        case mn0 of
+          Just (XmlName n) -> "for " ++ show n
+          Nothing          -> "any"
+
+parseXmlText :: Parser Xml
+parseXmlText =
+    XmlText <$>
+    anyChar `manyTill` lookAhead (   try (parseXmlEmptyTag >> return ())
+                                 <|> try (parseXmlTag      >> return ())
+                                 <|>      parseXmlTagClose Nothing
+                                 )
+    <?> "XML text"
+
+parseXmlAttributes :: Parser [XmlAttribute]
+parseXmlAttributes =
+    many parseXmlAttribute
+    <?> "XML attribute list"
+
+parseXmlAttribute :: Parser XmlAttribute
+parseXmlAttribute =
+    XmlAttribute <$>
+    (parseXmlName <* reservedOp' "=") <*> parseXmlAttributeValue
+    <?> "XML attribute"
+
+parseXmlAttributeValue :: Parser XmlAttributeValue
+parseXmlAttributeValue =
+    XmlAttributeValue <$>
+    stringLiteral'
+    <?> "XML attribute value"
+
+parseXmlName :: Parser XmlName
+parseXmlName =
+    XmlName <$>
+    ((:) <$> c0 <*> (many c1 <* whiteSpace'))
+    <?> "XML name"
+  where
+    c0 = letter   <|> cs
+    c1 = alphaNum <|> cs
+    cs = oneOf "-.:_"
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+angles'        :: Parser a -> Parser a
 braces'        :: Parser a -> Parser a
 brackets'      :: Parser a -> Parser a
 colon'         :: Parser String
@@ -273,6 +407,7 @@ semi'          :: Parser String
 stringLiteral' :: Parser String
 whiteSpace'    :: Parser ()
 
+angles'        = angles        lexer
 braces'        = braces        lexer
 brackets'      = brackets      lexer
 colon'         = colon         lexer
@@ -305,10 +440,6 @@ lexer =
       }
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
--- | Like '<?>', but used /before/ parser code.
-(<??>) :: Monad m => String -> ParsecT s u m a -> ParsecT s u m a
-(<??>) = flip (<?>)
 
 stringToLower :: String -> String
 stringToLower = map toLower
