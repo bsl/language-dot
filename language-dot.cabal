@@ -13,6 +13,10 @@ build-type:    Custom
 extra-source-files:
   src/test.hs
 
+flag executable
+  description: Build the `ppdot' executable.
+  default:     True
+
 library
   hs-source-dirs:
     src
@@ -24,9 +28,25 @@ library
     Language.Dot.Syntax
 
   build-depends:
-    base   >= 3 && < 5,
+    base   == 4.*,
+    mtl    == 1.*,
     parsec == 3.*,
     pretty == 1.*
+
+  ghc-options: -Wall
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+executable ppdot
+  if flag(executable)
+    buildable: True
+  else
+    buildable: False
+
+  hs-source-dirs:
+    src
+
+  main-is: ppdot.hs
 
   ghc-options: -Wall
   if impl(ghc >= 6.8)
