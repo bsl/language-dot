@@ -258,8 +258,10 @@ parseNameId =
 parseStringId :: Parser Id
 parseStringId =
     StringId <$>
-    stringLiteral'
+    lexeme' (char '"' *> manyTill stringChar (char '"'))
     <?> "string literal"
+  where
+    stringChar = try (string "\\\"" >> return '"') <|> noneOf "\""
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
