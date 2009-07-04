@@ -25,7 +25,7 @@ main = do
 parsePortTests :: [(String, Port)]
 parsePortTests =
     [ ( ":\"x\""          , PortI (StringId  "x"       ) Nothing          )
-    , ( ":\"\\t\\\"\":nw" , PortI (StringId  "\t\""    ) (Just CompassNW) )
+    , ( ":\"\\t\\\"\":nw" , PortI (StringId  "\\t\""   ) (Just CompassNW) )
     , ( ":-.0004"         , PortI (FloatId   (-0.0004) ) Nothing          )
     , ( ":-1.23:sE"       , PortI (FloatId   (-1.23)   ) (Just CompassSE) )
     , ( ":123"            , PortI (IntegerId 123       ) Nothing          )
@@ -51,34 +51,32 @@ parseCompassTests =
 
 parseAttributeTests :: [(String, Attribute)]
 parseAttributeTests =
-    [ ( "a"                      , AttributeSetTrue  (NameId "a")                            )
-    , ( "a=b"                    , AttributeSetValue (NameId "a")        (NameId "b")        )
-    , ( "-.003\t=\r\n  _xYz123_" , AttributeSetValue (FloatId (-0.003))  (NameId "_xYz123_") )
-    , ( "\"\\t\\t\\t\"  =-123"   , AttributeSetValue (StringId "\t\t\t") (IntegerId (-123))  )
+    [ ( "a"                      , AttributeSetTrue  (NameId "a")                           )
+    , ( "a=b"                    , AttributeSetValue (NameId "a")       (NameId "b")        )
+    , ( "-.003\t=\r\n  _xYz123_" , AttributeSetValue (FloatId (-0.003)) (NameId "_xYz123_") )
+    , ( "\"\\t\\\"\"  =-123"     , AttributeSetValue (StringId "\\t\"") (IntegerId (-123))  )
     ]
 
 parseIdTests :: [(String, Id)]
 parseIdTests =
-    [ ( "a"             , NameId    "a"      )
-    , ( "A1"            , NameId    "A1"     )
-    , ( "_2X"           , NameId    "_2X"    )
-    , ( "\"\""          , StringId  ""       )
-    , ( "\"\\\"\""      , StringId  "\""     )
-    , ( "\"abc\""       , StringId  "abc"    )
-    , ( "\"\\t\\r\\n\"" , StringId  "\t\r\n" )
-    , ( ".0"            , FloatId   0.0      )
-    , ( ".123"          , FloatId   0.123    )
-    , ( "+.999"         , FloatId   0.999    )
-    , ( "-.001"         , FloatId   (-0.001) )
-    , ( "+.001"         , FloatId   0.001    )
-    , ( "0.0"           , FloatId   0.0      )
-    , ( "1.2"           , FloatId   1.2      )
-    , ( "123.456"       , FloatId   123.456  )
-    , ( "0"             , IntegerId 0        )
-    , ( "+0"            , IntegerId 0        )
-    , ( "-0"            , IntegerId 0        )
-    , ( "123"           , IntegerId 123      )
-    , ( "-123"          , IntegerId (-123)   )
+    [ ( "a"             , NameId    "a"         )
+    , ( "A1"            , NameId    "A1"        )
+    , ( "_2X"           , NameId    "_2X"       )
+    , ( "\"\""          , StringId  ""          )
+    , ( "\"\\t\\r\\n\"" , StringId  "\\t\\r\\n" )
+    , ( ".0"            , FloatId   0.0         )
+    , ( ".123"          , FloatId   0.123       )
+    , ( "+.999"         , FloatId   0.999       )
+    , ( "-.001"         , FloatId   (-0.001)    )
+    , ( "+.001"         , FloatId   0.001       )
+    , ( "0.0"           , FloatId   0.0         )
+    , ( "1.2"           , FloatId   1.2         )
+    , ( "123.456"       , FloatId   123.456     )
+    , ( "0"             , IntegerId 0           )
+    , ( "+0"            , IntegerId 0           )
+    , ( "-0"            , IntegerId 0           )
+    , ( "123"           , IntegerId 123         )
+    , ( "-123"          , IntegerId (-123)      )
     ]
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
