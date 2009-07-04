@@ -31,7 +31,7 @@ renderDotFile fp =
 renderDotFileET :: FilePath -> ErrorT String IO String
 renderDotFileET fp = do
     contents <- readFile fp `liftCatch` show
-    graph    <- parseDot contents `liftEither` show
+    graph    <- parseDot fp contents `liftEither` show
     return $ renderDot graph
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
