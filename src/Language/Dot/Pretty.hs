@@ -124,10 +124,9 @@ vcat' = vcat . map pp
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 langle :: Doc
-langle = char '<'
-
 rangle :: Doc
-rangle = char '>'
+slash  :: Doc
 
-slash :: Doc
-slash = char '/'
+langle = char '<'
+rangle = char '>'
+slash  = char '/'
