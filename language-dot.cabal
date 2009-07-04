@@ -17,6 +17,10 @@ flag executable
   description: Build the `ppdot' executable.
   default:     True
 
+flag profile
+  description: Enable profiling.
+  default:     False
+
 library
   hs-source-dirs:
     src
@@ -36,6 +40,8 @@ library
   ghc-options: -Wall
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
+  if flag(profile)
+    ghc-options: -prof -auto-all
 
 executable ppdot
   if flag(executable)
@@ -51,6 +57,8 @@ executable ppdot
   ghc-options: -Wall
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
+  if flag(profile)
+    ghc-options: -prof -auto-all
 
 source-repository head
   type:     git
