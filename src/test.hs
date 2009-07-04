@@ -1,7 +1,5 @@
 module Main (main) where
 
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
 import Control.Monad (unless)
 import Data.Char     (toLower, toUpper)
 
