@@ -42,7 +42,7 @@ instance PP GraphDirectedness where
 
 instance PP Id where
   pp (NameId v)    = text v
-  pp (StringId v)  = text (show v)
+  pp (StringId v)  = doubleQuotes (text v)
   pp (IntegerId v) = integer v
   pp (FloatId v)   = float v
   pp (XmlId v)     = langle <> pp v <> rangle
