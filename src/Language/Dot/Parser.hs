@@ -1,8 +1,7 @@
 {-# LANGUAGE CPP #-}
 
 module Language.Dot.Parser
-  (
-    parseDot
+  ( parseDot
 #ifdef TEST
   , parsePort
   , parseCompass

@@ -1,8 +1,7 @@
-module Main (main) where
-
-import System.Process (system)
+module Main where
 
 import Distribution.Simple (defaultMainWithHooks, simpleUserHooks, runTests)
+import System.Process      (system)
 
 main :: IO ()
 main =

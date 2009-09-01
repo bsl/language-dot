@@ -1,6 +1,5 @@
 module Language.Dot.Pretty
-  (
-    prettyPrintDot
+  ( prettyPrintDot
   , renderDot
   , PP(..)
   )
