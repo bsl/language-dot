@@ -1,11 +1,11 @@
 name:         language-dot
-version:      0.0.2
+version:      0.0.3
 category:     Language
 synopsis:     A library for the analysis and creation of Graphviz DOT files
 description:  A library for the analysis and creation of Graphviz DOT files.
 author:       Brian Lewis <brian@lorf.org>
 maintainer:   Brian Lewis <brian@lorf.org>
-copyright:    Copyright: (c) 2009 Galois, Inc.
+copyright:    (c) 2009 Galois, Inc.
 license:      BSD3
 license-file: LICENSE
 
