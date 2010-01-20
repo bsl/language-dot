@@ -19,8 +19,6 @@ import Data.Maybe          (fromJust, fromMaybe, isJust)
 import Numeric             (readFloat)
 
 import Text.Parsec
-import Text.Parsec.Char
-import Text.Parsec.Combinator
 import Text.Parsec.Language
 import Text.Parsec.String
 import Text.Parsec.Token
@@ -297,7 +295,7 @@ parseFloatId =
     lexeme'
       ( do s <- parseSign
            l <- fmap (fromMaybe 0) (optionMaybe parseNatural)
-           char '.'
+           _ <- char '.'
            r <- many1 digit
            maybe err return (make s (show l ++ "." ++ r))
       )
@@ -378,10 +376,10 @@ parseXmlTagOpen =
 
 parseXmlTagClose :: Maybe XmlName -> Parser ()
 parseXmlTagClose mn0 =
-    ( do char '<'
-         char '/'
+    ( do _  <- char '<'
+         _  <- char '/'
          n1 <- parseXmlName
-         char '>'
+         _  <- char '>'
          when (isJust mn0 && fromJust mn0 /= n1) parserZero
     )
     <?> "XML closing tag " ++ "(" ++ which ++ ")"
