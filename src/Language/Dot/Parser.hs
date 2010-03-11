@@ -27,9 +27,12 @@ import Language.Dot.Syntax
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseDot :: String -> String -> Either ParseError Graph
-parseDot source =
-    parse (whiteSpace' >> parseGraph) source . preprocess
+parseDot
+  :: String  -- ^ origin of the data, e.g., the name of a file
+  -> String  -- ^ DOT source code
+  -> Either ParseError Graph
+parseDot origin =
+    parse (whiteSpace' >> parseGraph) origin . preprocess
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
