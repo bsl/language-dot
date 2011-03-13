@@ -30,10 +30,10 @@ library
     Language.Dot.Syntax
 
   build-depends:
-    base   == 4.*,
-    mtl    == 1.* || == 2.*,
-    parsec == 3.*,
-    pretty == 1.*
+    base    == 4.*,
+    mtl     == 1.* || == 2.*,
+    parsec3 == 1.*,
+    pretty  == 1.*
 
   ghc-options: -Wall
   if impl(ghc >= 6.8)
