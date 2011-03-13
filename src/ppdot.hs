@@ -2,7 +2,6 @@ module Main (main) where
 
 import Control.Exception   (IOException, try)
 import Control.Monad.Error (ErrorT(..), MonadError(..))
-import Data.List           (intercalate)
 import System.Environment  (getArgs, getProgName)
 import System.Exit         (exitFailure, exitSuccess)
 import System.IO           (hPutStrLn, stderr)
@@ -41,7 +40,7 @@ displayUsage = do
     programName <- getProgName
     ePutStrLns
       [ programName ++ ": Pretty-print a Graphviz DOT file."
-      , intercalate " " ["Usage:", programName, "FILE"]
+      , unwords ["Usage:", programName, "FILE"]
       ]
 
 exitError :: String -> IO ()
