@@ -32,7 +32,7 @@ library
   build-depends:
     base    == 4.*,
     mtl     == 1.* || == 2.*,
-    parsec3 == 1.*,
+    parsec  == 3.*,
     pretty  == 1.*
 
   ghc-options: -Wall
