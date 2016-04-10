@@ -7,6 +7,7 @@ module Language.Dot.Pretty
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+import Numeric
 import Text.PrettyPrint
 
 import Language.Dot.Syntax
@@ -43,7 +44,7 @@ instance PP Id where
   pp (NameId v)    = text v
   pp (StringId v)  = doubleQuotes (text v)
   pp (IntegerId v) = integer v
-  pp (FloatId v)   = float v
+  pp (FloatId v)   = ffloat v
   pp (XmlId v)     = langle <> pp v <> rangle
 
 instance PP Statement where
@@ -129,3 +130,6 @@ slash  :: Doc
 langle = char '<'
 rangle = char '>'
 slash  = char '/'
+
+ffloat :: Float -> Doc
+ffloat v = text (showFFloat Nothing v "")
