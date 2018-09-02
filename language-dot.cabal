@@ -72,4 +72,4 @@ test-suite test
 
 source-repository head
   type:     git
-  location: git://github.com/bsl/language-dot.git
+  location: https://github.com/bsl/language-dot
