@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Main (main) where
@@ -12,6 +13,7 @@ import           Language.Dot.Parser
 import           Language.Dot.Pretty
 import           Language.Dot.Syntax
 
+import qualified Data.Generics as SYB
 import qualified Generic.Random as R
 import qualified Test.Tasty as T
 import qualified Test.Tasty.QuickCheck as Q
@@ -151,6 +153,15 @@ instance Q.Arbitrary Graph                  where arbitrary = R.genericArbitrary
 
 tastyTests :: T.TestTree
 tastyTests = T.testGroup "QuickCheck tests"
-  [ Q.testProperty "Render then parse roundtrip" $ \g ->
-      Right g == parseDot "test" (renderDot g)
+  [ let -- We have to filter out cases where there is an empty string Id,
+        -- because these will print fine but be unparseable (or give different
+        -- results)
+        nonemptyId =
+          \case
+            NameId ""   -> NameId "filler"
+            StringId "" -> StringId "filler"
+            otherId     -> otherId
+    in Q.testProperty "Render then parse roundtrip" $ \g ->
+         let g' = SYB.everywhere (SYB.mkT nonemptyId) g
+         in Right g' == parseDot "test" (renderDot g')
   ]
