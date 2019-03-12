@@ -13,7 +13,6 @@ import           Language.Dot.Parser
 import           Language.Dot.Pretty
 import           Language.Dot.Syntax
 
-import qualified Data.Generics as SYB
 import qualified Generic.Random as R
 import qualified Test.Tasty as T
 import qualified Test.Tasty.QuickCheck as Q
@@ -133,9 +132,17 @@ allCaps (c:cs) =
 
 -- Tasty tests
 
+nonEmptyNonQuote :: String -> String
+nonEmptyNonQuote = ('x':) . filter (/= '"')
+
+instance Q.Arbitrary XmlName where
+  arbitrary = XmlName . nonEmptyNonQuote <$> Q.arbitrary
+
+instance Q.Arbitrary Id where
+  arbitrary = StringId . nonEmptyNonQuote <$> Q.arbitrary
+
 instance Q.Arbitrary XmlAttributeValue      where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary XmlAttribute           where arbitrary = R.genericArbitraryU
-instance Q.Arbitrary XmlName                where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary Xml                    where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary EdgeType               where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary Entity                 where arbitrary = R.genericArbitraryU
@@ -146,22 +153,12 @@ instance Q.Arbitrary NodeId                 where arbitrary = R.genericArbitrary
 instance Q.Arbitrary Attribute              where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary AttributeStatementType where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary Statement              where arbitrary = R.genericArbitraryU
-instance Q.Arbitrary Id                     where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary GraphDirectedness      where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary GraphStrictness        where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary Graph                  where arbitrary = R.genericArbitraryU
 
 tastyTests :: T.TestTree
 tastyTests = T.testGroup "QuickCheck tests"
-  [ let -- We have to filter out cases where there is an empty string Id,
-        -- because these will print fine but be unparseable (or give different
-        -- results)
-        nonemptyId =
-          \case
-            NameId ""   -> NameId "filler"
-            StringId "" -> StringId "filler"
-            otherId     -> otherId
-    in Q.testProperty "Render then parse roundtrip" $ \g ->
-         let g' = SYB.everywhere (SYB.mkT nonemptyId) g
-         in Right g' == parseDot "test" (renderDot g')
+  [ Q.testProperty "Render then parse roundtrip" $ \g ->
+      Right g == parseDot "test" (renderDot g)
   ]
