@@ -5,6 +5,7 @@ module Main (main) where
 
 import           Control.Monad (unless)
 import           Data.Char (toLower, toUpper)
+import           Data.List.NonEmpty (NonEmpty((:|)))
 
 import           Text.Parsec
 import           Text.Parsec.String
@@ -134,6 +135,9 @@ allCaps (c:cs) =
 
 nonEmptyNonQuote :: String -> String
 nonEmptyNonQuote = ('x':) . filter (/= '"')
+
+instance Q.Arbitrary a => Q.Arbitrary (NonEmpty a) where
+  arbitrary = (:|) <$> Q.arbitrary <*> Q.arbitrary
 
 instance Q.Arbitrary XmlName where
   arbitrary = XmlName . nonEmptyNonQuote <$> Q.arbitrary

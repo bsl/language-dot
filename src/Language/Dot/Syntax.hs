@@ -5,6 +5,7 @@
 
 module Language.Dot.Syntax where
 
+import Data.List.NonEmpty
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
@@ -33,7 +34,7 @@ data Id
 
 data Statement
   = NodeStatement       NodeId [Attribute]
-  | EdgeStatement       [Entity] [Attribute]
+  | EdgeStatement       Entity (NonEmpty Entity) [Attribute]
   | AttributeStatement  AttributeStatementType [Attribute]
   | AssignmentStatement Id Id
   | SubgraphStatement   Subgraph

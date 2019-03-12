@@ -15,6 +15,7 @@ import Control.Applicative ((<$>), (<*>), (<*), (*>))
 import Control.Monad       (when)
 import Data.Char           (digitToInt, toLower)
 import Data.List           (foldl')
+import Data.List.NonEmpty  (NonEmpty((:|)))
 import Data.Maybe          (fromJust, fromMaybe, isJust)
 import Numeric             (readFloat)
 
@@ -98,7 +99,7 @@ parseNodeStatement =
 parseEdgeStatement :: Parser Statement
 parseEdgeStatement =
     ( EdgeStatement <$>
-      parseEntityList <*> parseAttributeList
+      parseEntity True <*> parseEntityList <*> parseAttributeList
     )
     <?> "edge statement"
 
@@ -160,9 +161,9 @@ parseSubgraphRef =
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseEntityList :: Parser [Entity]
+parseEntityList :: Parser (NonEmpty Entity)
 parseEntityList =
-    ( (:) <$>
+    ( (:|) <$>
       parseEntity True <*> many1 (parseEntity False)
     )
     <?> "entity list"
