@@ -1,13 +1,20 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Main (main) where
 
-import Control.Monad (unless)
-import Data.Char     (toLower, toUpper)
+import           Control.Monad (unless)
+import           Data.Char (toLower, toUpper)
 
-import Text.Parsec
-import Text.Parsec.String
+import           Text.Parsec
+import           Text.Parsec.String
 
-import Language.Dot.Parser
-import Language.Dot.Syntax
+import           Language.Dot.Parser
+import           Language.Dot.Pretty
+import           Language.Dot.Syntax
+
+import qualified Generic.Random as R
+import qualified Test.Tasty as T
+import qualified Test.Tasty.QuickCheck as Q
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -17,6 +24,7 @@ main = do
     testParser "parseCompass"   parseCompass   parseCompassTests
     testParser "parseAttribute" parseAttribute parseAttributeTests
     testParser "parseId"        parseId        parseIdTests
+    T.defaultMain tastyTests
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -118,3 +126,31 @@ allCaps (c:cs) =
   where
     l = toLower c
     u = toUpper c
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+-- Tasty tests
+
+instance Q.Arbitrary XmlAttributeValue      where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary XmlAttribute           where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary XmlName                where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Xml                    where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary EdgeType               where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Entity                 where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Subgraph               where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Compass                where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Port                   where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary NodeId                 where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Attribute              where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary AttributeStatementType where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Statement              where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Id                     where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary GraphDirectedness      where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary GraphStrictness        where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Graph                  where arbitrary = R.genericArbitraryU
+
+tastyTests :: T.TestTree
+tastyTests = T.testGroup "QuickCheck tests"
+  [ Q.testProperty "Render then parse roundtrip" $ \g ->
+      Right g == parseDot "test" (renderDot g)
+  ]
