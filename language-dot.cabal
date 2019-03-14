@@ -57,9 +57,17 @@ executable ppdot
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
 
+Flag prof
+  Description:         Profiling
+  Default:             True
+
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
+  if flag(prof)
+    ghc-options:
+      -fprof-auto
+      "-with-rtsopts=-p -s -h"
   other-modules:
     Language.Dot.Parser
     Language.Dot.Pretty

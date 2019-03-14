@@ -142,7 +142,7 @@ allCaps (c:cs) =
 -- Tasty tests
 
 nonEmptyNonQuote :: String -> String
-nonEmptyNonQuote = ('x':) . filter (/= '"')
+nonEmptyNonQuote = ('x':) . filter (`notElem` ['"', ' ', '\n'])
 
 instance Q.Arbitrary a => Q.Arbitrary (NonEmpty a) where
   arbitrary = (:|) <$> Q.arbitrary <*> Q.arbitrary
@@ -206,6 +206,11 @@ tastyTests = T.testGroup "QuickCheck tests"
   , H.testCase "Empty graph" $
       Right (Graph StrictGraph UndirectedGraph Nothing [])
         @=? parseDot "test" "strict graph { }"
+  , H.testCase "" $
+      Right (Graph UnstrictGraph UndirectedGraph Nothing
+             [EdgeStatement (ENodeId (NodeId (NameId "x") Nothing))
+              (WithEdge UndirectedEdge (ENodeId (NodeId (NameId "y") Nothing)) :| []) []])
+        @=? parseDot "test" "graph { x -- y; }"
   , H.testCase "Empty subgraph" $
       Right (Graph StrictGraph UndirectedGraph Nothing
              [SubgraphStatement (SubgraphRef (StringId "x.foo"))])
