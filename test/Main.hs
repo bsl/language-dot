@@ -22,7 +22,7 @@ import qualified Test.SmallCheck.Series as Series
 import qualified Test.Tasty as T
 import           Test.Tasty.HUnit ((@=?))
 import qualified Test.Tasty.HUnit as H
-import           Test.Tasty.QuickCheck ((===))
+-- import           Test.Tasty.QuickCheck ((===))
 import qualified Test.Tasty.QuickCheck as Q
 import qualified Test.Tasty.SmallCheck as S
 
@@ -199,9 +199,10 @@ instance Monad m => Series.Serial m Graph
 
 tastyTests :: T.TestTree
 tastyTests = T.testGroup "QuickCheck tests"
-  [ Q.testProperty "Render then parse roundtrip" $ \g ->
-      Right g === parseDot "test" (renderDot g)
-  , S.testProperty "Render then parse roundtrip" $ S.forAll $ \g ->
+  [
+    -- Q.testProperty "Render then parse roundtrip" $ \g ->
+    --   Right g === parseDot "test" (renderDot g)
+    S.testProperty "Render then parse roundtrip" $ S.forAll $ \g ->
       Right g == parseDot "test" (renderDot g)
   , H.testCase "Empty graph" $
       Right (Graph StrictGraph UndirectedGraph Nothing [])

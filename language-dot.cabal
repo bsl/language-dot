@@ -59,7 +59,7 @@ executable ppdot
 
 Flag prof
   Description:         Profiling
-  Default:             True
+  Default:             False
 
 test-suite test
   type: exitcode-stdio-1.0
