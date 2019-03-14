@@ -58,8 +58,8 @@ instance PP Statement where
     case stmt of
       (NodeStatement ni as)        ->
         pp ni
-        <+> if not (null as) then brackets (hsep' as) else empty
-      (AttributeStatement t as)    -> pp t <+> brackets (hsep' as)
+        <+> if not (null as) then brackets (commas as) else empty
+      (AttributeStatement t as)    -> pp t <+> brackets (commas as)
       (AssignmentStatement i0 i1)  -> pp i0 <> equals <> pp i1
       (SubgraphStatement s)        -> pp s
       (EdgeStatement src tgts as)  ->
@@ -67,7 +67,7 @@ instance PP Statement where
           ENodeId nid -> pp nid
           ESubgraph sub -> pp sub)
         <+> hsep' tgts
-        <+> if not (null as) then brackets (hsep' as) else empty
+        <+> if not (null as) then brackets (commas as) else empty
 
 instance PP AttributeStatementType where
   pp GraphAttributeStatement = text "graph"
@@ -137,6 +137,9 @@ hsep' = hsep . map pp . toList
 
 vcat' :: (Foldable f, PP a) => f a -> Doc
 vcat' = vcat . map pp . toList
+
+commas :: (Foldable f, PP a) => f a -> Doc
+commas = hcat . punctuate (text ",") . map pp . toList
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
