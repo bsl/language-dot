@@ -1,6 +1,7 @@
 -- | DOT AST. See <http://www.graphviz.org/doc/info/lang.html>.
 
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Language.Dot.Syntax where
@@ -8,7 +9,7 @@ module Language.Dot.Syntax where
 import Data.List.NonEmpty
 import Data.Data (Data)
 import Data.Typeable (Typeable)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
 
 data Graph
   = Graph GraphStrictness GraphDirectedness (Maybe Id) [Statement]
@@ -22,7 +23,7 @@ data GraphStrictness
 data GraphDirectedness
   = DirectedGraph
   | UndirectedGraph
-  deriving (Data, Eq, Generic, Ord, Show, Typeable)
+  deriving (Bounded, Data, Eq, Enum, Generic, Ord, Show, Typeable)
 
 data Id
   = NameId    String
@@ -34,7 +35,7 @@ data Id
 
 data Statement
   = NodeStatement       NodeId [Attribute]
-  | EdgeStatement       Entity (NonEmpty Entity) [Attribute]
+  | EdgeStatement       Entity (NonEmpty (WithEdge Entity)) [Attribute]
   | AttributeStatement  AttributeStatementType [Attribute]
   | AssignmentStatement Id Id
   | SubgraphStatement   Subgraph
@@ -63,21 +64,23 @@ data Port
 data Compass
   = CompassN  | CompassE  | CompassS  | CompassW
   | CompassNE | CompassNW | CompassSE | CompassSW
-  deriving (Data, Eq, Generic, Ord, Show, Typeable)
+  deriving (Bounded, Data, Eq, Enum, Generic, Ord, Show, Typeable)
 
 data Subgraph
   = NewSubgraph (Maybe Id) [Statement]
   | SubgraphRef Id
   deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
+data WithEdge a = WithEdge EdgeType a
+  deriving (Data, Eq, Functor, Generic, Generic1, Ord, Show, Typeable)
+
 data Entity
-  = ENodeId   EdgeType NodeId
-  | ESubgraph EdgeType Subgraph
+  = ENodeId   NodeId
+  | ESubgraph Subgraph
   deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data EdgeType
-  = NoEdge
-  | DirectedEdge
+  = DirectedEdge
   | UndirectedEdge
   deriving (Data, Eq, Generic, Ord, Show, Typeable)
 

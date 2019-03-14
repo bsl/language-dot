@@ -64,8 +64,8 @@ instance PP Statement where
       (SubgraphStatement s)        -> pp s
       (EdgeStatement src tgts as)  ->
         (case src of
-          ENodeId _ nid -> pp nid
-          ESubgraph _ sub -> pp sub)
+          ENodeId nid -> pp nid
+          ESubgraph sub -> pp sub)
         <+> hsep' tgts
         <+> if not (null as) then brackets (hsep' as) else empty
 
@@ -100,11 +100,13 @@ instance PP Subgraph where
   pp (SubgraphRef i)     = text "subgraph" <+> pp i
 
 instance PP Entity where
-  pp (ENodeId et ni)   = pp et <+> pp ni
-  pp (ESubgraph et sg) = pp et <+> pp sg
+  pp (ENodeId ni)   = pp ni
+  pp (ESubgraph sg) = pp sg
+
+instance PP a => PP (WithEdge a) where
+  pp (WithEdge et a) = pp et <+> pp a
 
 instance PP EdgeType where
-  pp NoEdge         = empty
   pp DirectedEdge   = text "->"
   pp UndirectedEdge = text "--"
 

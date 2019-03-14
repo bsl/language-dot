@@ -1,4 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Main (main) where
@@ -15,8 +17,14 @@ import           Language.Dot.Pretty
 import           Language.Dot.Syntax
 
 import qualified Generic.Random as R
+import qualified Test.SmallCheck as S
+import qualified Test.SmallCheck.Series as Series
 import qualified Test.Tasty as T
+import           Test.Tasty.HUnit ((@=?))
+import qualified Test.Tasty.HUnit as H
+import           Test.Tasty.QuickCheck ((===))
 import qualified Test.Tasty.QuickCheck as Q
+import qualified Test.Tasty.SmallCheck as S
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -139,6 +147,9 @@ nonEmptyNonQuote = ('x':) . filter (/= '"')
 instance Q.Arbitrary a => Q.Arbitrary (NonEmpty a) where
   arbitrary = (:|) <$> Q.arbitrary <*> Q.arbitrary
 
+instance Q.Arbitrary a => Q.Arbitrary (WithEdge a) where
+  arbitrary = R.genericArbitraryU
+
 instance Q.Arbitrary XmlName where
   arbitrary = XmlName . nonEmptyNonQuote <$> Q.arbitrary
 
@@ -161,8 +172,42 @@ instance Q.Arbitrary GraphDirectedness      where arbitrary = R.genericArbitrary
 instance Q.Arbitrary GraphStrictness        where arbitrary = R.genericArbitraryU
 instance Q.Arbitrary Graph                  where arbitrary = R.genericArbitraryU
 
+instance Series.Serial m a => Series.Serial m (NonEmpty a)
+instance Series.Serial m a => Series.Serial m (WithEdge a)
+
+instance Monad m => Series.Serial m XmlName where
+  series = Series.cons1 (XmlName . nonEmptyNonQuote)
+
+instance Monad m => Series.Serial m Id where
+  series = Series.cons1 (StringId . nonEmptyNonQuote)
+
+instance Monad m => Series.Serial m XmlAttributeValue
+instance Monad m => Series.Serial m XmlAttribute
+instance Monad m => Series.Serial m Xml
+instance Monad m => Series.Serial m EdgeType
+instance Monad m => Series.Serial m Entity
+instance Monad m => Series.Serial m Subgraph
+instance Monad m => Series.Serial m Compass
+instance Monad m => Series.Serial m Port
+instance Monad m => Series.Serial m NodeId
+instance Monad m => Series.Serial m Attribute
+instance Monad m => Series.Serial m AttributeStatementType
+instance Monad m => Series.Serial m Statement
+instance Monad m => Series.Serial m GraphDirectedness
+instance Monad m => Series.Serial m GraphStrictness
+instance Monad m => Series.Serial m Graph
+
 tastyTests :: T.TestTree
 tastyTests = T.testGroup "QuickCheck tests"
   [ Q.testProperty "Render then parse roundtrip" $ \g ->
+      Right g === parseDot "test" (renderDot g)
+  , S.testProperty "Render then parse roundtrip" $ S.forAll $ \g ->
       Right g == parseDot "test" (renderDot g)
+  , H.testCase "Empty graph" $
+      Right (Graph StrictGraph UndirectedGraph Nothing [])
+        @=? parseDot "test" "strict graph { }"
+  , H.testCase "Empty subgraph" $
+      Right (Graph StrictGraph UndirectedGraph Nothing
+             [SubgraphStatement (SubgraphRef (StringId "x.foo"))])
+        @=? parseDot "test" "strict graph { subgraph \"x.foo\"; }"
   ]
