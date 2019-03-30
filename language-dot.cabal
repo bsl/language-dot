@@ -9,8 +9,8 @@ copyright:    (c) 2009 Galois, Inc.
 license:      BSD3
 license-file: LICENSE
 
-cabal-version: >= 1.6
-build-type:    Custom
+cabal-version: >= 1.8
+build-type:    Simple
 
 extra-source-files:
   src/test.hs
@@ -45,15 +45,31 @@ executable ppdot
   else
     buildable: False
 
-  hs-source-dirs:
-    src
+  hs-source-dirs: ppdot
 
-  main-is: ppdot.hs
+  main-is: Main.hs
+  build-depends:
+    base    == 4.*,
+    mtl     == 1.* || == 2.*,
+    language-dot
 
   ghc-options: -Wall
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
 
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    Language.Dot.Parser
+    Language.Dot.Syntax
+  hs-source-dirs: test, src
+  ghc-options: -Wall
+  cpp-options: -DTEST
+  build-depends:
+    base    == 4.*,
+    parsec  == 3.*
+
 source-repository head
   type:     git
-  location: git://github.com/bsl/language-dot.git
+  location: https://github.com/bsl/language-dot
