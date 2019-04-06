@@ -12,6 +12,7 @@ import Prelude hiding ((<>))
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+import Data.Foldable (toList)
 import Numeric
 import Text.PrettyPrint
 
@@ -53,11 +54,20 @@ instance PP Id where
   pp (XmlId v)     = langle <> pp v <> rangle
 
 instance PP Statement where
-  pp (NodeStatement ni as)       = pp ni <+> if not (null as) then brackets (hsep' as) else empty
-  pp (EdgeStatement es as)       = hsep' es <+> if not (null as) then brackets (hsep' as) else empty
-  pp (AttributeStatement t as)   = pp t <+> brackets (hsep' as)
-  pp (AssignmentStatement i0 i1) = pp i0 <> equals <> pp i1
-  pp (SubgraphStatement s)       = pp s
+  pp stmt = (<+> text ";") $ -- Always append ';'
+    case stmt of
+      (NodeStatement ni as)        ->
+        pp ni
+        <+> if not (null as) then brackets (commas as) else empty
+      (AttributeStatement t as)    -> pp t <+> brackets (commas as)
+      (AssignmentStatement i0 i1)  -> pp i0 <> equals <> pp i1
+      (SubgraphStatement s)        -> pp s
+      (EdgeStatement src tgts as)  ->
+        (case src of
+          ENodeId nid -> pp nid
+          ESubgraph sub -> pp sub)
+        <+> hsep' tgts
+        <+> if not (null as) then brackets (commas as) else empty
 
 instance PP AttributeStatementType where
   pp GraphAttributeStatement = text "graph"
@@ -90,11 +100,13 @@ instance PP Subgraph where
   pp (SubgraphRef i)     = text "subgraph" <+> pp i
 
 instance PP Entity where
-  pp (ENodeId et ni)   = pp et <+> pp ni
-  pp (ESubgraph et sg) = pp et <+> pp sg
+  pp (ENodeId ni)   = pp ni
+  pp (ESubgraph sg) = pp sg
+
+instance PP a => PP (WithEdge a) where
+  pp (WithEdge et a) = pp et <+> pp a
 
 instance PP EdgeType where
-  pp NoEdge         = empty
   pp DirectedEdge   = text "->"
   pp UndirectedEdge = text "--"
 
@@ -117,14 +129,17 @@ instance PP XmlAttributeValue where
 indent :: Doc -> Doc
 indent = nest 2
 
-hcat' :: (PP a) => [a] -> Doc
-hcat' = hcat . map pp
+hcat' :: (Foldable f, PP a) => f a -> Doc
+hcat' = hcat . map pp . toList
 
-hsep' :: (PP a) => [a] -> Doc
-hsep' = hsep . map pp
+hsep' :: (Foldable f, PP a) => f a -> Doc
+hsep' = hsep . map pp . toList
 
-vcat' :: (PP a) => [a] -> Doc
-vcat' = vcat . map pp
+vcat' :: (Foldable f, PP a) => f a -> Doc
+vcat' = vcat . map pp . toList
+
+commas :: (Foldable f, PP a) => f a -> Doc
+commas = hcat . punctuate (text ",") . map pp . toList
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

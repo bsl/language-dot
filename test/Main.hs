@@ -1,13 +1,30 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Main (main) where
 
-import Control.Monad (unless)
-import Data.Char     (toLower, toUpper)
+import           Control.Monad (unless)
+import           Data.Char (toLower, toUpper)
+import           Data.List.NonEmpty (NonEmpty((:|)))
 
-import Text.Parsec
-import Text.Parsec.String
+import           Text.Parsec
+import           Text.Parsec.String
 
-import Language.Dot.Parser
-import Language.Dot.Syntax
+import           Language.Dot.Parser
+import           Language.Dot.Pretty
+import           Language.Dot.Syntax
+
+import qualified Generic.Random as R
+import qualified Test.SmallCheck as S
+import qualified Test.SmallCheck.Series as Series
+import qualified Test.Tasty as T
+import           Test.Tasty.HUnit ((@=?))
+import qualified Test.Tasty.HUnit as H
+-- import           Test.Tasty.QuickCheck ((===))
+import qualified Test.Tasty.QuickCheck as Q
+import qualified Test.Tasty.SmallCheck as S
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -17,6 +34,7 @@ main = do
     testParser "parseCompass"   parseCompass   parseCompassTests
     testParser "parseAttribute" parseAttribute parseAttributeTests
     testParser "parseId"        parseId        parseIdTests
+    T.defaultMain tastyTests
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -118,3 +136,84 @@ allCaps (c:cs) =
   where
     l = toLower c
     u = toUpper c
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+-- Tasty tests
+
+nonEmptyNonQuote :: String -> String
+nonEmptyNonQuote = ('x':) . filter (`notElem` ['"', ' ', '\n'])
+
+instance Q.Arbitrary a => Q.Arbitrary (NonEmpty a) where
+  arbitrary = (:|) <$> Q.arbitrary <*> Q.arbitrary
+
+instance Q.Arbitrary a => Q.Arbitrary (WithEdge a) where
+  arbitrary = R.genericArbitraryU
+
+instance Q.Arbitrary XmlName where
+  arbitrary = XmlName . nonEmptyNonQuote <$> Q.arbitrary
+
+instance Q.Arbitrary Id where
+  arbitrary = StringId . nonEmptyNonQuote <$> Q.arbitrary
+
+instance Q.Arbitrary XmlAttributeValue      where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary XmlAttribute           where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Xml                    where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary EdgeType               where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Entity                 where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Subgraph               where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Compass                where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Port                   where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary NodeId                 where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Attribute              where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary AttributeStatementType where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Statement              where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary GraphDirectedness      where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary GraphStrictness        where arbitrary = R.genericArbitraryU
+instance Q.Arbitrary Graph                  where arbitrary = R.genericArbitraryU
+
+instance Series.Serial m a => Series.Serial m (NonEmpty a)
+instance Series.Serial m a => Series.Serial m (WithEdge a)
+
+instance Monad m => Series.Serial m XmlName where
+  series = Series.cons1 (XmlName . nonEmptyNonQuote)
+
+instance Monad m => Series.Serial m Id where
+  series = Series.cons1 (StringId . nonEmptyNonQuote)
+
+instance Monad m => Series.Serial m XmlAttributeValue
+instance Monad m => Series.Serial m XmlAttribute
+instance Monad m => Series.Serial m Xml
+instance Monad m => Series.Serial m EdgeType
+instance Monad m => Series.Serial m Entity
+instance Monad m => Series.Serial m Subgraph
+instance Monad m => Series.Serial m Compass
+instance Monad m => Series.Serial m Port
+instance Monad m => Series.Serial m NodeId
+instance Monad m => Series.Serial m Attribute
+instance Monad m => Series.Serial m AttributeStatementType
+instance Monad m => Series.Serial m Statement
+instance Monad m => Series.Serial m GraphDirectedness
+instance Monad m => Series.Serial m GraphStrictness
+instance Monad m => Series.Serial m Graph
+
+tastyTests :: T.TestTree
+tastyTests = T.testGroup "QuickCheck tests"
+  [
+    -- Q.testProperty "Render then parse roundtrip" $ \g ->
+    --   Right g === parseDot "test" (renderDot g)
+    S.testProperty "Render then parse roundtrip" $ S.forAll $ \g ->
+      Right g == parseDot "test" (renderDot g)
+  , H.testCase "Empty graph" $
+      Right (Graph StrictGraph UndirectedGraph Nothing [])
+        @=? parseDot "test" "strict graph { }"
+  , H.testCase "" $
+      Right (Graph UnstrictGraph UndirectedGraph Nothing
+             [EdgeStatement (ENodeId (NodeId (NameId "x") Nothing))
+              (WithEdge UndirectedEdge (ENodeId (NodeId (NameId "y") Nothing)) :| []) []])
+        @=? parseDot "test" "graph { x -- y; }"
+  , H.testCase "Empty subgraph" $
+      Right (Graph StrictGraph UndirectedGraph Nothing
+             [SubgraphStatement (SubgraphRef (StringId "x.foo"))])
+        @=? parseDot "test" "strict graph { subgraph \"x.foo\"; }"
+  ]

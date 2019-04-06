@@ -1,20 +1,29 @@
 -- | DOT AST. See <http://www.graphviz.org/doc/info/lang.html>.
 
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 module Language.Dot.Syntax where
+
+import Data.List.NonEmpty
+import Data.Data (Data)
+import Data.Typeable (Typeable)
+import GHC.Generics (Generic, Generic1)
 
 data Graph
   = Graph GraphStrictness GraphDirectedness (Maybe Id) [Statement]
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data GraphStrictness
   = StrictGraph
   | UnstrictGraph
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data GraphDirectedness
   = DirectedGraph
   | UndirectedGraph
-  deriving (Eq, Show)
+  deriving (Bounded, Data, Eq, Enum, Generic, Ord, Show, Typeable)
 
 data Id
   = NameId    String
@@ -22,71 +31,73 @@ data Id
   | IntegerId Integer
   | FloatId   Float
   | XmlId     Xml
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data Statement
   = NodeStatement       NodeId [Attribute]
-  | EdgeStatement       [Entity] [Attribute]
+  | EdgeStatement       Entity (NonEmpty (WithEdge Entity)) [Attribute]
   | AttributeStatement  AttributeStatementType [Attribute]
   | AssignmentStatement Id Id
   | SubgraphStatement   Subgraph
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data AttributeStatementType
   = GraphAttributeStatement
   | NodeAttributeStatement
   | EdgeAttributeStatement
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data Attribute
   = AttributeSetTrue  Id
   | AttributeSetValue Id Id
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data NodeId
   = NodeId Id (Maybe Port)
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data Port
   = PortI Id (Maybe Compass)
   | PortC Compass
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data Compass
   = CompassN  | CompassE  | CompassS  | CompassW
   | CompassNE | CompassNW | CompassSE | CompassSW
-  deriving (Eq, Show)
+  deriving (Bounded, Data, Eq, Enum, Generic, Ord, Show, Typeable)
 
 data Subgraph
   = NewSubgraph (Maybe Id) [Statement]
   | SubgraphRef Id
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
+
+data WithEdge a = WithEdge EdgeType a
+  deriving (Data, Eq, Functor, Generic, Generic1, Ord, Show, Typeable)
 
 data Entity
-  = ENodeId   EdgeType NodeId
-  | ESubgraph EdgeType Subgraph
-  deriving (Eq, Show)
+  = ENodeId   NodeId
+  | ESubgraph Subgraph
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data EdgeType
-  = NoEdge
-  | DirectedEdge
+  = DirectedEdge
   | UndirectedEdge
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data Xml
   = XmlEmptyTag XmlName [XmlAttribute]
   | XmlTag      XmlName [XmlAttribute] [Xml]
   | XmlText     String
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data XmlName
   = XmlName String
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data XmlAttribute
   = XmlAttribute XmlName XmlAttributeValue
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)
 
 data XmlAttributeValue
   = XmlAttributeValue String
-  deriving (Eq, Show)
+  deriving (Data, Eq, Generic, Ord, Show, Typeable)

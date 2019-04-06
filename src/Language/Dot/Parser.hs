@@ -15,6 +15,7 @@ import Control.Applicative ((<$>), (<*>), (<*), (*>))
 import Control.Monad       (when)
 import Data.Char           (digitToInt, toLower)
 import Data.List           (foldl')
+import Data.List.NonEmpty  (NonEmpty((:|)))
 import Data.Maybe          (fromJust, fromMaybe, isJust)
 import Numeric             (readFloat)
 
@@ -98,7 +99,7 @@ parseNodeStatement =
 parseEdgeStatement :: Parser Statement
 parseEdgeStatement =
     ( EdgeStatement <$>
-      parseEntityList <*> parseAttributeList
+      parseEntity <*> parseEntityList <*> parseAttributeList
     )
     <?> "edge statement"
 
@@ -160,33 +161,23 @@ parseSubgraphRef =
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parseEntityList :: Parser [Entity]
+parseEntityList :: Parser (NonEmpty (WithEdge Entity))
 parseEntityList =
-    ( (:) <$>
-      parseEntity True <*> many1 (parseEntity False)
-    )
+    ( (:|) <$> parseWithEdge parseEntity <*> many (parseWithEdge parseEntity) )
     <?> "entity list"
 
-parseEntity :: Bool -> Parser Entity
-parseEntity first =
-    (   try (parseENodeId first)
-    <|>     parseESubgraph first
-    )
-    <?> "entity"
+parseWithEdge :: Parser a -> Parser (WithEdge a)
+parseWithEdge parser =
+  (WithEdge <$> parseEdgeType <*> parser) <?> "an edge plus some entity"
 
-parseENodeId :: Bool -> Parser Entity
-parseENodeId first =
-    ( ENodeId <$>
-      (if first then return NoEdge else parseEdgeType) <*> parseNodeId
-    )
-    <?> "entity node id"
+parseEntity :: Parser Entity
+parseEntity = (try parseENodeId <|> parseESubgraph) <?> "entity"
 
-parseESubgraph :: Bool -> Parser Entity
-parseESubgraph first =
-    ( ESubgraph <$>
-      (if first then return NoEdge else parseEdgeType) <*> parseSubgraph
-    )
-    <?> "entity subgraph"
+parseENodeId :: Parser Entity
+parseENodeId = (ENodeId <$> parseNodeId) <?> "entity node id"
+
+parseESubgraph :: Parser Entity
+parseESubgraph = (ESubgraph <$> parseSubgraph) <?> "entity subgraph"
 
 parseEdgeType :: Parser EdgeType
 parseEdgeType =
