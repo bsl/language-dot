@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Control.Monad (unless, foldM)
+import Control.Monad (unless)
 import Data.Char     (toLower, toUpper)
 import System.Exit   (exitSuccess, exitFailure)
 
@@ -14,7 +14,8 @@ import Language.Dot.Syntax
 
 main :: IO ()
 main = do
-    (np,nf) <- foldM (\(p,f) t -> t >>= (\(p',f') -> return (p+p', f+f'))) (0,0)
+    let sumBoth (a,b) (c,d) = (a+c, b+d)
+    (np,nf) <- foldr sumBoth (0,0) <$> sequence
                [
                  testParser "parsePort"      parsePort      parsePortTests
                , testParser "parseCompass"   parseCompass   parseCompassTests
