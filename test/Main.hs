@@ -2,6 +2,7 @@ module Main (main) where
 
 import Control.Monad (unless)
 import Data.Char     (toLower, toUpper)
+import System.Exit   (exitSuccess, exitFailure)
 
 import Text.Parsec
 import Text.Parsec.String
@@ -13,10 +14,22 @@ import Language.Dot.Syntax
 
 main :: IO ()
 main = do
-    testParser "parsePort"      parsePort      parsePortTests
-    testParser "parseCompass"   parseCompass   parseCompassTests
-    testParser "parseAttribute" parseAttribute parseAttributeTests
-    testParser "parseId"        parseId        parseIdTests
+    let sumBoth (a,b) (c,d) = (a+c, b+d)
+    (np,nf) <- foldr sumBoth (0,0) <$> sequence
+               [
+                 testParser "parsePort"      parsePort      parsePortTests
+               , testParser "parseCompass"   parseCompass   parseCompassTests
+               , testParser "parseAttribute" parseAttribute parseAttributeTests
+               , testParser "parseId"        parseId        parseIdTests
+               ]
+    unless (nf == 0) $ do
+      putStrLn ("Final results: "
+                <> show np <> " tests passed but "
+                <> show nf <> " failed.")
+      exitFailure
+    putStrLn $ "All " <> show np <> " tests passed."
+    exitSuccess
+
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -79,7 +92,7 @@ parseIdTests =
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-testParser :: (Eq a, Show a) => String -> Parser a -> [(String, a)] -> IO ()
+testParser :: (Eq a, Show a) => String -> Parser a -> [(String, a)] -> IO (Int,Int)
 testParser name parser tests =
     help tests [] (0 :: Int) (0 :: Int)
   where
@@ -87,6 +100,7 @@ testParser name parser tests =
         putStrLn $ name ++ ": " ++ show np ++ " passed, " ++ show nf ++ " failed"
         mapM_ (putStrLn . ("  "++)) (reverse es)
         unless (null es) (putStrLn "")
+        return (np, nf)
     help ((i,o):ts) es np nf =
         case parse' parser i of
           Left  _ -> help ts (makeFailureMessage name i o : es) np (succ nf)
