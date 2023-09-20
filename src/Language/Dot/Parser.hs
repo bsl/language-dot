@@ -3,6 +3,7 @@
 module Language.Dot.Parser
   ( parseDot
 #ifdef TEST
+  , parseGraph
   , parsePort
   , parseCompass
   , parseAttribute

@@ -8,6 +8,7 @@ import Text.Parsec
 import Text.Parsec.String
 
 import Language.Dot.Parser
+import Language.Dot.Pretty
 import Language.Dot.Syntax
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -21,6 +22,22 @@ main = do
                , testParser "parseCompass"   parseCompass   parseCompassTests
                , testParser "parseAttribute" parseAttribute parseAttributeTests
                , testParser "parseId"        parseId        parseIdTests
+               , testParser "parseGraphs"    parseGraph     parseGraphTests
+               , testRoundTrip "RT1" "digraph T1 { n1 -> n2; n1 -> n3 -> n4; }"
+               , testRoundTrip "RT2" "graph T2 { n1 [ shape=\"oval\" ]\n\
+                                     \           n1 -- n2 [ style=\"dotted\"];\n\
+                                     \ }"
+               , testRoundTrip "RT3" "digraph T3 {\n\
+                                     \  n1 [ shape=\"rectangle\" \n\
+                                     \       label=\"This is a very long string that may interact with the pretting printing of the output\"\n\
+                                     \       style=\"rounded\"\n\
+                                     \     ];\n\
+                                     \  n1 -> n2 -> n3 -> n4 -> n5 -> n6 [\n\
+                                     \    style=\"dotted\"\n\
+                                     \    label=\"This is another very long string whose purpose is to ensure that pretty printing is working correctly when there are very long strings in the output\"\n\
+                                     \    samehead=\"Yes, use the same head if there are multiples\"\n\
+                                     \    ];\n\
+                                     \ }"
                ]
     unless (nf == 0) $ do
       putStrLn ("Final results: "
@@ -90,6 +107,37 @@ parseIdTests =
     , ( "-123"          , IntegerId (-123)      )
     ]
 
+parseGraphTests :: [(String, Graph)]
+parseGraphTests =
+  [
+    ( "digraph T1 { n1 -> n2; n1 -> n3 -> n4; }"
+    , Graph UnstrictGraph DirectedGraph (Just $ NameId "T1")
+      [
+        EdgeStatement [ ENodeId NoEdge (NodeId (NameId "n1") Nothing)
+                      , ENodeId DirectedEdge (NodeId (NameId "n2") Nothing)
+                      ]
+        []
+      , EdgeStatement [ ENodeId NoEdge (NodeId (NameId "n1") Nothing)
+                      , ENodeId DirectedEdge (NodeId (NameId "n3") Nothing)
+                      , ENodeId DirectedEdge (NodeId (NameId "n4") Nothing)
+                      ]
+        []
+      ]
+    )
+
+  , ( "graph T2 { n1 [ shape=\"oval\" ]; n1 -- n2 [ style=\"dotted\"]; }"
+    , Graph UnstrictGraph UndirectedGraph (Just $ NameId "T2")
+      [
+        NodeStatement (NodeId (NameId "n1") Nothing)
+        [ AttributeSetValue (NameId "shape") (StringId "oval") ]
+      , EdgeStatement [ ENodeId NoEdge (NodeId (NameId "n1") Nothing)
+                      , ENodeId UndirectedEdge (NodeId (NameId "n2") Nothing)
+                      ]
+        [ AttributeSetValue (NameId "style") (StringId "dotted") ]
+      ]
+    )
+  ]
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 testParser :: (Eq a, Show a) => String -> Parser a -> [(String, a)] -> IO (Int,Int)
@@ -119,6 +167,28 @@ makeFailureMessage' name i o v =
     "(" ++ name ++ " " ++ show i ++ ")" ++
     " returned "  ++ "(" ++ show v ++ ")" ++
     ", expected " ++ "(" ++ show o ++ ")"
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+testRoundTrip :: String -> String -> IO (Int,Int)
+testRoundTrip testName input =
+  case parse' parseGraph input of
+    Left e -> do putStrLn $ "Parse failed for test " <> testName
+                 putStrLn $ "Input: " <> input
+                 putStrLn $ "Error: " <> show e
+                 return (0,1)
+    Right v -> case parse' parseGraph $ renderDot v of
+      Left _ -> do putStrLn $ "Parse failed for pretty form in test " <> testName
+                   putStrLn $ "Pretty: " <> renderDot v
+                   return (0,1)
+      Right v' -> if v == v'
+                  then do putStrLn $ "Parse success for " <> testName
+                          -- putStrLn $ renderDot v
+                          return (1,0)
+                  else do putStrLn $ "Doubled round-trip failure for " <> testName <> ":"
+                          putStrLn $ "First parse: " <> show v
+                          putStrLn $ "Second parse: " <> show v'
+                          return (0,1)
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
