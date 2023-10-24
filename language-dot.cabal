@@ -1,5 +1,5 @@
 name:         language-dot
-version:      0.1.1
+version:      0.1.2
 category:     Language
 synopsis:     A library for the analysis and creation of Graphviz DOT files
 description:  A library for the analysis and creation of Graphviz DOT files.
