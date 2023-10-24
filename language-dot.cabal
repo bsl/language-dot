@@ -8,6 +8,7 @@ maintainer:   Ben Gamari <ben@smart-cactus.org>
 copyright:    (c) 2009 Galois, Inc.
 license:      BSD3
 license-file: LICENSE
+tested-with:  GHC==9.2.3, GHC==9.4.5, GHC==9.6.2
 
 cabal-version: >= 1.8
 build-type:    Simple
