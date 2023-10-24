@@ -1,7 +1,8 @@
 module Main (main) where
 
 import Control.Exception   (IOException, try)
-import Control.Monad.Error (ErrorT(..), MonadError(..))
+import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Except (ExceptT(..), runExceptT)
 import System.Environment  (getArgs, getProgName)
 import System.Exit         (exitFailure, exitSuccess)
 import System.IO           (hPutStrLn, stderr)
@@ -25,9 +26,9 @@ run args =
 
 renderDotFile :: FilePath -> IO ()
 renderDotFile fp =
-    runErrorT (renderDotFileET fp) >>= either exitError putStrLn
+    runExceptT (renderDotFileET fp) >>= either exitError putStrLn
 
-renderDotFileET :: FilePath -> ErrorT String IO String
+renderDotFileET :: FilePath -> ExceptT String IO String
 renderDotFileET fp = do
     contents <- readFile fp `liftCatch` show
     graph    <- parseDot fp contents `liftEither` show
@@ -57,8 +58,8 @@ exitError e = do
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-liftCatch :: IO a -> (IOException -> e) -> ErrorT e IO a
-liftCatch a f = ErrorT $ fmap (either (Left . f) Right) (try a)
+liftCatch :: IO a -> (IOException -> e) -> ExceptT e IO a
+liftCatch a f = ExceptT $ fmap (either (Left . f) Right) (try a)
 
 liftEither :: (MonadError e m) => Either l r -> (l -> e) -> m r
 liftEither e f = either (throwError . f) return e
